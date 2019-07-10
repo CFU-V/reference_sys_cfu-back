@@ -1,0 +1,35 @@
+{
+  "compilerOptions": {
+    "module": "commonjs",
+    "declaration": false,
+    "noImplicitAny": false,
+    "removeComments": true,
+    "noLib": false,
+    "allowSyntheticDefaultImports": true,
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "target": "es6",
+    "sourceMap": true,
+    "allowJs": true,
+    "esModuleInterop": false,
+    "skipLibCheck": true,
+    "outDir": "./dist",
+    "baseUrl": "./src",
+    "lib": [
+      "dom",
+      "es2015",
+      "es2017"
+    ]
+  },
+  "include": [
+    "src/**/*",
+    "src/**/*/*.dto"
+  ],
+  "exclude": [
+    "node_modules",
+    "**/*.spec.ts"
+  ],
+  "files": [
+    "main.d.ts"
+  ]
+}
