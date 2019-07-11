@@ -1,6 +1,8 @@
 import * as dotenv from 'dotenv';
 import { Sequelize } from 'sequelize-typescript';
 import { Dialect } from 'sequelize';
+import { User } from '../user/entities/user.entity';
+import { Role } from '../user/entities/role.entity';
 /**
  * Load config
  */
@@ -18,7 +20,7 @@ export const databaseProviders = [
               process.env.DB_PASSWORD,
               {dialect, host},
             );
-            sequelize.addModels([]);
+            sequelize.addModels([User, Role]);
             await sequelize.sync();
             return sequelize;
         },
