@@ -1,0 +1,78 @@
+'use strict';
+
+module.exports = {
+  up: (queryInterface, Sequelize) => {
+    return queryInterface.createTable('documents', {
+      id: {
+        allowNull: false,
+        autoIncrement: true,
+        primaryKey: true,
+        type: Sequelize.BIGINT
+      },
+      parentId: {
+        allowNull: true,
+        references: {
+          model: 'documents',
+          key: 'id'
+        },
+        type: Sequelize.BIGINT,
+      },
+      title: {
+        allowNull: false,
+        type: Sequelize.STRING(256)
+      },
+      file: {
+        allowNull: false,
+        type: Sequelize.STRING(256),
+      },
+      info: {
+        allowNull: false,
+        type: Sequelize.STRING(6000),
+      },
+      type: {
+        allowNull: false,
+        type: Sequelize.STRING(128),
+      },
+      active: {
+        allowNull: false,
+        defaultValue: true,
+        type: Sequelize.BOOLEAN,
+      },
+      visibility: {
+        allowNull: false,
+        defaultValue: true,
+        type: Sequelize.BOOLEAN,
+      },
+      ownerId: {
+        allowNull: false,
+        references: {
+          model: 'users',
+          key: 'id'
+        },
+        type: Sequelize.INTEGER,
+      },
+      link: {
+        allowNull: true,
+        type: Sequelize.Sequelize.STRING(256),
+      },
+      renew: {
+        allowNull: true,
+        defaultValue: false,
+        type: Sequelize.BOOLEAN,
+      },
+      createdAt: {
+        defaultValue: Sequelize.fn('NOW'),
+        type: Sequelize.DATE,
+      },
+      updatedAt: {
+        defaultValue: Sequelize.fn('NOW'),
+        onUpdate: 'SET DEFAULT',
+        type: Sequelize.DATE,
+      },
+    })
+  },
+
+  down: function (queryInterface, Sequelize) {
+    return queryInterface.dropTable('documents');
+  }
+};
