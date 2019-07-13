@@ -21,6 +21,7 @@ export class AuthController {
   ) {
     const user = await this.userService.findByLogin(loginPayload);
     const payload: PayloadDTO = {
+      id: user.id,
       login: user.login,
       role: user.role,
     };
@@ -36,10 +37,9 @@ export class AuthController {
     try {
       const user = await this.userService.registration(registrationPayload);
 
-      res.status(HttpStatus.OK).json(user);
+      return res.status(HttpStatus.OK).json(user);
     } catch (error) {
-      console.log(error);
-      res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(error);
+      return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(error);
     }
   }
 }

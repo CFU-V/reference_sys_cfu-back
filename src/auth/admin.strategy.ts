@@ -3,6 +3,7 @@ import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy, VerifiedCallback } from 'passport-jwt';
 
 import { AuthService } from './auth.service';
+import { PayloadDTO } from './dto/payload.dto';
 
 @Injectable()
 export class AdminStrategy extends PassportStrategy(Strategy, 'admin') {
@@ -14,7 +15,7 @@ export class AdminStrategy extends PassportStrategy(Strategy, 'admin') {
   }
 
   async validate(payload: any, done: VerifiedCallback) {
-    const user = await this.authService.validateUser({login: payload.login, role: 'admin'});
+    const user = await this.authService.validateUser({id: payload.id, login: payload.login, role: 'admin'});
     if (!user) {
       return done(
         new HttpException('Unauthorized access', HttpStatus.UNAUTHORIZED),

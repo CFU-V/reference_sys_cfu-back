@@ -1,16 +1,10 @@
 import { ApiModelProperty } from '@nestjs/swagger';
-import { IsNumber, IsString } from 'class-validator';
+import { IsString } from 'class-validator';
 
-export class UserDto {
-  @ApiModelProperty()
-  @IsNumber()
-  id: number;
+export class MeDto {
   @ApiModelProperty()
   @IsString()
   password: string;
-  @ApiModelProperty()
-  @IsNumber()
-  roleId: number;
   @ApiModelProperty()
   @IsString()
   phone: string;

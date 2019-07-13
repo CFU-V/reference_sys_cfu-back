@@ -11,12 +11,12 @@ import {
     PrimaryKey,
     ForeignKey,
     AutoIncrement,
-    Sequelize,
-    BelongsTo, BeforeCreate,
+    BelongsTo,
+    BeforeCreate,
+    BeforeUpdate,
 } from 'sequelize-typescript';
 import * as bcrypt from 'bcrypt';
 import { Role } from './role.entity';
-import { rejects } from 'assert';
 
 @Table({
     timestamps: true,
@@ -93,10 +93,13 @@ export class User extends Model<User> {
     @BelongsTo(() => Role)
     role: Role;
 
+    @BeforeUpdate
     @BeforeCreate
     static async hashPassword(user: User) {
         try {
-            user.password = await bcrypt.hash(user.password, 10);
+            if (user.password) {
+                user.password = await bcrypt.hash(user.password, 10);
+            }
         } catch (error) {
             throw error;
         }
