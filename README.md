@@ -1,4 +1,5 @@
 ## Description
+![alt text](./public/cfu-logo.png)
 
 Rest API of a CFU Reference System.
 
