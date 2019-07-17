@@ -11,7 +11,7 @@ export class AuthService {
     return sign(payload, process.env.SECRET_KEY, { expiresIn: process.env.EXPIRES_TOKEN_TIME });
   }
 
-  async validateUser(payload: PayloadDTO) {
-    return await this.userService.findByPayload(payload);
+  async validateUser(payload: PayloadDTO, additionalRole?: string) {
+    return await this.userService.findByPayload(payload, additionalRole);
   }
 }

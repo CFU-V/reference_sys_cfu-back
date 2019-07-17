@@ -7,9 +7,9 @@ import { Role } from './entities/role.entity';
 import { RegistrationDTO } from '../auth/dto/registration.dto';
 import { EntitiesWithPaging } from '../common/paging/paging.entities';
 import { PAGE, PAGE_SIZE } from '../common/paging/paging.constants';
-import { where } from 'sequelize';
 import { UserDto } from './dto/user.dto';
 import { MeDto } from './dto/me.dto';
+import { Op } from 'sequelize';
 
 @Injectable()
 export class UserService {
@@ -32,12 +32,28 @@ export class UserService {
         }
     }
 
-    async findByPayload(payload: PayloadDTO) {
+    async findByPayload(payload: PayloadDTO, additionalRole?: string) {
+        let roleWhere = {};
+
+        if (additionalRole) {
+            roleWhere = {
+                [Op.or]: [
+                    {name: payload.role },
+                    {name: additionalRole},
+                ],
+            };
+        } else {
+            roleWhere = { name: payload.role };
+        }
+
         return await this.userRepository.findOne({
             where: {
                 login: payload.login,
             },
-            include: [{ model: Role, as: 'role', where: { name: payload.role } }],
+            include: [{
+                model: Role, as: 'role',
+                where: roleWhere,
+            }],
         });
     }
 

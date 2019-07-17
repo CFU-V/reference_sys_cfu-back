@@ -3,6 +3,7 @@ import { Sequelize } from 'sequelize-typescript';
 import { Dialect } from 'sequelize';
 import { User } from '../user/entities/user.entity';
 import { Role } from '../user/entities/role.entity';
+import { Document } from '../document/entities/document.entity';
 /**
  * Load config
  */
@@ -20,7 +21,7 @@ export const databaseProviders = [
               process.env.DB_PASSWORD,
               {dialect, host},
             );
-            sequelize.addModels([User, Role]);
+            sequelize.addModels([User, Role, Document]);
             await sequelize.sync();
             return sequelize;
         },

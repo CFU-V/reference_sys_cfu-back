@@ -3,5 +3,5 @@ import { UserDto } from './user.dto';
 
 export class GetUsersResponseDto {
   @ApiModelProperty()
-  users: [UserDto];
+  users: Array<UserDto>;
 }

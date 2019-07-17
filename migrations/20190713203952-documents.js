@@ -9,21 +9,10 @@ module.exports = {
         primaryKey: true,
         type: Sequelize.BIGINT
       },
-      parentId: {
-        allowNull: true,
-        references: {
-          model: 'documents',
-          key: 'id'
-        },
-        type: Sequelize.BIGINT,
-      },
       title: {
         allowNull: false,
-        type: Sequelize.STRING(256)
-      },
-      file: {
-        allowNull: false,
         type: Sequelize.STRING(256),
+        unique: true
       },
       info: {
         allowNull: false,
@@ -42,6 +31,14 @@ module.exports = {
         allowNull: false,
         defaultValue: true,
         type: Sequelize.BOOLEAN,
+      },
+      parentId: {
+        allowNull: true,
+        references: {
+          model: 'documents',
+          key: 'id'
+        },
+        type: Sequelize.BIGINT,
       },
       ownerId: {
         allowNull: false,
