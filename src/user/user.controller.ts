@@ -71,8 +71,10 @@ export class UserController {
     }
 
     @UseGuards(AuthGuard('jwt'))
+    @ApiResponse({ status: 200, description: 'Bookmarks current user' })
+    @ApiOperation({title: 'Get bookmarks of current user.'})
     @Get('/user/bookmarks')
-    async gerBookmarks(
+    async getBookmarks(
       @Request() req,
       @Res() res,
     ) {
@@ -85,6 +87,8 @@ export class UserController {
 
     @Put('/user')
     @UseGuards(AuthGuard('admin'))
+    @ApiResponse({ status: 200, description: 'Updated user.'})
+    @ApiOperation({title: 'Update user. Only for admin.'})
     async putUser(
       @Res() res,
       @Body() user: UserDto,
@@ -98,6 +102,8 @@ export class UserController {
 
     @Put('/me')
     @UseGuards(AuthGuard('jwt'))
+    @ApiResponse({ status: 200, description: 'Updated current user.'})
+    @ApiOperation({title: 'Update user. Only for current user.'})
     async putMe(
       @Res() res,
       @Request() req,
@@ -112,6 +118,8 @@ export class UserController {
 
     @UseGuards(AuthGuard('jwt'))
     @Get('/me')
+    @ApiResponse({ status: 200, description: 'Current user info.'})
+    @ApiOperation({title: 'Get current user info.'})
     async getProfile(
       @Request() req,
       @Res() res,
