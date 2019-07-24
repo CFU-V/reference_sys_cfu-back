@@ -393,4 +393,4 @@ dokcer-compose.yml
 .env
 
 dist/
-landing
+documents
