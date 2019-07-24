@@ -1,5 +1,5 @@
 import { Body, Controller, Post, Res, HttpStatus } from '@nestjs/common';
-import { ApiUseTags } from '@nestjs/swagger';
+import { ApiUseTags, ApiResponse, ApiOperation } from '@nestjs/swagger';
 import { UserService } from '../user/user.service';
 import { PayloadDTO } from './dto/payload.dto';
 import { LoginDTO } from './dto/login.dto';
@@ -15,6 +15,8 @@ export class AuthController {
   ) {}
 
   @Post('login')
+  @ApiResponse({ status: 200, description: 'User info, token'})
+  @ApiOperation({title: 'Login.'})
   async login(
     @Res() res,
     @Body() loginPayload: LoginDTO,
@@ -30,6 +32,8 @@ export class AuthController {
   }
 
   @Post('registration')
+  @ApiResponse({ status: 200, description: 'User info.'})
+  @ApiOperation({title: 'Registration.'})
   async registration(
     @Res() res,
     @Body() registrationPayload: RegistrationDTO,
