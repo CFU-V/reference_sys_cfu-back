@@ -15,7 +15,7 @@ import {
     UseInterceptors,
 } from '@nestjs/common';
 import { DocumentService } from './document.service';
-import { ApiUseTags, ApiBearerAuth, ApiConsumes, ApiImplicitFile} from '@nestjs/swagger';
+import { ApiUseTags, ApiBearerAuth, ApiConsumes, ApiImplicitFile, ApiResponse, ApiOperation} from '@nestjs/swagger';
 import { AuthGuard } from '@nestjs/passport';
 import { DocumentDto, UpdateDocumentDto } from './dto/document.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
@@ -24,6 +24,8 @@ import { extname } from 'path';
 import * as fs from 'fs';
 import Utils from '../core/Utils';
 import { ValidateObjectId } from '../shared/pipes/validate-object-id.pipes';
+import * as path from 'path';
+import { GetUsersResponseDto } from '../user/dto/get-users-response.dto';
 
 @ApiUseTags('document')
 @ApiBearerAuth()
@@ -35,6 +37,8 @@ export class DocumentController {
     @UseGuards(AuthGuard('staff'))
     @ApiConsumes('multipart/form-data')
     @ApiImplicitFile({ name: 'file', required: true })
+    @ApiResponse({ status: 200, description: 'Created document info', type: DocumentDto })
+    @ApiOperation({title: 'Add new document.'})
     @UseInterceptors(FileInterceptor('file',
     {
         storage: diskStorage({
@@ -44,6 +48,13 @@ export class DocumentController {
                 return cb(null, `${randomName}${extname(file.originalname)}`);
             },
         }),
+        fileFilter: (req, file, cb) => {
+            const ext = path.extname(file.originalname);
+            if (ext !== '.doc' && ext !== '.docx') {
+                return cb(new Error('Only doc/docx are allowed'), false);
+            }
+            cb(null, true);
+        },
     },
     ))
     async addDocument(
@@ -68,34 +79,26 @@ export class DocumentController {
     }
 
     @Put('/')
+    @ApiResponse({ status: 200, description: 'Update document info', type: DocumentDto })
+    @ApiOperation({title: 'Update document.'})
     @UseGuards(AuthGuard('staff'))
-    @ApiConsumes('multipart/form-data')
-    @ApiImplicitFile({ name: 'file', required: false })
-    @UseInterceptors(FileInterceptor('file'))
     async putDocument(
       @Res() res,
       @Request() req,
       @Body() documentInfo: UpdateDocumentDto,
-      @UploadedFile() file,
     ) {
         try {
-            const document = await this.service.updateDocument(req.user.id, file, documentInfo);
+            const document = await this.service.updateDocument(req.user.id, documentInfo);
 
             return res.status(HttpStatus.OK).json(document);
         } catch (error) {
-            if (file) {
-                const createdFile = fs.existsSync(file.path);
-
-                if (createdFile) {
-                    fs.unlinkSync(file.path);
-                }
-            }
-
             return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(error);
         }
     }
 
     @Delete('/')
+    @ApiResponse({ status: 200, description: 'Delete document.'})
+    @ApiOperation({title: 'Delete document.'})
     @UseGuards(AuthGuard('staff'))
     async deleteDocument(
       @Res() res,

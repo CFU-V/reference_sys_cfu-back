@@ -29,7 +29,7 @@ export class UserController {
     constructor(private service: UserService) {}
 
     @UseGuards(AuthGuard('admin'))
-    @Get('/user')
+    @Get('/')
     @ApiResponse({ status: 200, description: 'User info or array of users.', type: GetUsersResponseDto })
     @ApiOperation({title: 'Get users info.', description: 'Set id param 0, for getting all users'})
     @ApiImplicitQuery({
@@ -58,7 +58,15 @@ export class UserController {
     }
 
     @UseGuards(AuthGuard('admin'))
-    @Delete('/user')
+    @ApiResponse({ status: 200, description: 'User deleted'})
+    @ApiOperation({title: 'Delete user.'})
+    @ApiImplicitQuery({
+        name: 'userId',
+        description: 'User id to be deleted.',
+        required: true,
+        type: Number,
+    })
+    @Delete('/')
     async deleteUser(
       @Res() res,
       @Query('userId', new ValidateObjectId()) userId: number,
@@ -85,7 +93,7 @@ export class UserController {
         }
     }
 
-    @Put('/user')
+    @Put('/')
     @UseGuards(AuthGuard('admin'))
     @ApiResponse({ status: 200, description: 'Updated user.'})
     @ApiOperation({title: 'Update user. Only for admin.'})

@@ -3,6 +3,7 @@ import { Document } from './entities/document.entity';
 import { EntitiesWithPaging } from '../common/paging/paging.entities';
 import { PAGE, PAGE_SIZE } from '../common/paging/paging.constants';
 import { DocumentDto, UpdateDocumentDto } from './dto/document.dto';
+
 import * as fs from 'fs';
 import Utils from '../core/Utils';
 import { extname } from 'path';
@@ -27,31 +28,21 @@ export class DocumentService {
         });
     }
 
-    async updateDocument(ownerId: number, file: any, document: UpdateDocumentDto) {
+    async updateDocument(ownerId: number, document: UpdateDocumentDto) {
         const oldDoc = await this.documentRepository.findOne({ where: {id: document.id} });
-        let filePath: string;
-
         if (oldDoc) {
-            if (file) {
-              fs.unlinkSync(oldDoc.link);
-              file.originalname = `${Utils.getRandomFileName()}${extname(file.originalname)}`;
-              filePath = `${process.env.DOCUMENT_STORAGE}/${file.originalname}`;
-              fs.writeFileSync(filePath, file);
-            }
-
             return await oldDoc.update({
-              title: document.title,
-              ownerId,
-              parentId: document.parentId,
-              info: document.info,
-              type: document.type,
-              active: document.active,
-              visibility: document.visibility,
-              renew: document.renew,
-              link: filePath ? filePath : oldDoc.link,
+                title: document.title,
+                ownerId,
+                parentId: document.parentId,
+                info: document.info,
+                type: document.type,
+                active: document.active,
+                visibility: document.visibility,
+                renew: document.renew,
             });
         } else {
-          return new HttpException(`Document with id ${document.id} doesn\`t exist.`, HttpStatus.BAD_REQUEST);
+            return new HttpException(`Document with id ${document.id} doesn\`t exist.`, HttpStatus.BAD_REQUEST);
         }
     }
 

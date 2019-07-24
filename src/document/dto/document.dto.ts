@@ -18,20 +18,20 @@ export class DocumentDto {
 }
 
 export class UpdateDocumentDto {
-  @ApiModelProperty()
-  id: string;
-  @ApiModelProperty()
+  @ApiModelProperty({required: true})
+  id: number;
+  @ApiModelProperty({required: false})
   title: string;
   @ApiModelProperty({required: false})
   parentId: number;
-  @ApiModelProperty()
+  @ApiModelProperty({required: false})
   info: string;
-  @ApiModelProperty()
+  @ApiModelProperty({required: false})
   type: string;
-  @ApiModelProperty()
+  @ApiModelProperty({required: false})
   active: boolean;
-  @ApiModelProperty()
+  @ApiModelProperty({required: false})
   visibility: boolean;
-  @ApiModelProperty()
+  @ApiModelProperty({required: false})
   renew: boolean;
 }
