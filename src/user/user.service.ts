@@ -10,6 +10,7 @@ import { PAGE, PAGE_SIZE } from '../common/paging/paging.constants';
 import { UserDto } from './dto/user.dto';
 import { MeDto } from './dto/me.dto';
 import { Op } from 'sequelize';
+import { Document } from '../document/entities/document.entity';
 
 @Injectable()
 export class UserService {

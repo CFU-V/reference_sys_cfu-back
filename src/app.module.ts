@@ -5,6 +5,7 @@ import { DatabaseModule } from './database/database.module';
 import { UserModule } from './user/user.module';
 import { AuthModule } from './auth/auth.module';
 import { DocumentModule } from './document/document.module';
+import { BookmarkModule } from './bookmarks/bookmark.module';
 
 @Module({
   imports: [
@@ -13,6 +14,7 @@ import { DocumentModule } from './document/document.module';
     UserModule,
     AuthModule,
     DocumentModule,
+    BookmarkModule,
   ],
   controllers: [AppController],
   providers: [AppService],

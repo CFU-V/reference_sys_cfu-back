@@ -13,10 +13,12 @@ import {
     AutoIncrement,
     BelongsTo,
     BeforeCreate,
-    BeforeUpdate,
+    BeforeUpdate, BelongsToMany,
 } from 'sequelize-typescript';
 import * as bcrypt from 'bcrypt';
 import { Role } from './role.entity';
+import { Bookmark } from '../../bookmarks/entities/bookmark.entity';
+import { Document } from '../../document/entities/document.entity';
 
 @Table({
     timestamps: true,
@@ -92,6 +94,9 @@ export class User extends Model<User> {
 
     @BelongsTo(() => Role)
     role: Role;
+
+    @BelongsToMany(() => Document, () => Bookmark)
+    bookmarks: Bookmark[];
 
     @BeforeUpdate
     @BeforeCreate

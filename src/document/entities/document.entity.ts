@@ -10,7 +10,7 @@ import {
     PrimaryKey,
     ForeignKey,
     AutoIncrement,
-    BelongsTo,
+    BelongsTo, BelongsToMany,
 } from 'sequelize-typescript';
 import { User } from '../../user/entities/user.entity';
 

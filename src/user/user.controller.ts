@@ -78,21 +78,6 @@ export class UserController {
         }
     }
 
-    @UseGuards(AuthGuard('jwt'))
-    @ApiResponse({ status: 200, description: 'Bookmarks current user' })
-    @ApiOperation({title: 'Get bookmarks of current user.'})
-    @Get('/user/bookmarks')
-    async getBookmarks(
-      @Request() req,
-      @Res() res,
-    ) {
-        try {
-            return res.status(HttpStatus.OK).json({ msg: 'Coming soon' });
-        } catch (error) {
-            return res.status(HttpStatus.BAD_REQUEST).json(error);
-        }
-    }
-
     @Put('/')
     @UseGuards(AuthGuard('admin'))
     @ApiResponse({ status: 200, description: 'Updated user.'})
