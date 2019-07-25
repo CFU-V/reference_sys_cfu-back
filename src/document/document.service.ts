@@ -3,10 +3,9 @@ import { Document } from './entities/document.entity';
 import { EntitiesWithPaging } from '../common/paging/paging.entities';
 import { PAGE, PAGE_SIZE } from '../common/paging/paging.constants';
 import { DocumentDto, UpdateDocumentDto } from './dto/document.dto';
-
 import * as fs from 'fs';
-import Utils from '../core/Utils';
-import { extname } from 'path';
+import * as convert from 'xml-js';
+import * as AdmZip from 'adm-zip';
 
 @Injectable()
 export class DocumentService {
@@ -26,6 +25,35 @@ export class DocumentService {
             renew: document.renew,
             link: filePath,
         });
+    }
+
+    async getListDocument(user: any, page?: number, pageSize?: number) {
+        page = page > 0 ? page : PAGE;
+        pageSize = pageSize > 0 ? pageSize : PAGE_SIZE;
+        const offset: number = pageSize * page;
+        const options = {
+            limit: pageSize,
+            offset,
+            where: user ? {} : { visibility: true },
+        };
+
+        const result = await this.documentRepository.findAndCountAll(options);
+
+        return new EntitiesWithPaging(result.rows, result.count, page, pageSize);
+    }
+
+    async getDocument(id: number, user: any) {
+        const options = {
+            where: user ? { id } : { id, visibility: true },
+            attributes: ['link'],
+        };
+
+        const document = await this.documentRepository.findOne(options);
+        const unzip = fs.readFileSync(document.link);
+        const zip = new AdmZip(document.link);
+        const xml = zip.readAsText('word/document2.xml');
+        console.log(convert.xml2json(xml));
+        return document;
     }
 
     async updateDocument(ownerId: number, document: UpdateDocumentDto) {

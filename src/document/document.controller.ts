@@ -15,7 +15,7 @@ import {
     UseInterceptors,
 } from '@nestjs/common';
 import { DocumentService } from './document.service';
-import { ApiUseTags, ApiBearerAuth, ApiConsumes, ApiImplicitFile, ApiResponse, ApiOperation} from '@nestjs/swagger';
+import { ApiUseTags, ApiBearerAuth, ApiConsumes, ApiImplicitFile, ApiResponse, ApiOperation, ApiImplicitQuery} from '@nestjs/swagger';
 import { AuthGuard } from '@nestjs/passport';
 import { DocumentDto, UpdateDocumentDto } from './dto/document.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
@@ -25,13 +25,17 @@ import * as fs from 'fs';
 import Utils from '../core/Utils';
 import { ValidateObjectId } from '../shared/pipes/validate-object-id.pipes';
 import * as path from 'path';
-import { GetUsersResponseDto } from '../user/dto/get-users-response.dto';
+import { verify } from 'jsonwebtoken';
+import { UserService } from '../user/user.service';
 
 @ApiUseTags('document')
 @ApiBearerAuth()
 @Controller('document')
 export class DocumentController {
-    constructor(private service: DocumentService) {}
+    constructor(
+        private documentService: DocumentService,
+        private userService: UserService,
+    ) {}
 
     @Post('/')
     @UseGuards(AuthGuard('staff'))
@@ -64,7 +68,7 @@ export class DocumentController {
       @UploadedFile() file,
     ) {
         try {
-            const document = await this.service.addDocument(req.user.id, file.path, documentInfo);
+            const document = await this.documentService.addDocument(req.user.id, file.path, documentInfo);
 
             return res.status(HttpStatus.OK).json(document);
         } catch (error) {
@@ -74,6 +78,65 @@ export class DocumentController {
                 fs.unlinkSync(file.path);
             }
 
+            return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(error);
+        }
+    }
+
+    @Get('/list')
+    @ApiResponse({ status: 200, description: '', type: DocumentDto })
+    @ApiOperation({title: 'Get list of documents.'})
+    @ApiImplicitQuery({
+        name: 'page',
+        description: 'The number of pages',
+        required: false,
+        type: Number,
+    })
+    @ApiImplicitQuery({
+        name: 'pageSize',
+        description: 'The number of users in page',
+        required: false,
+        type: Number,
+    })
+    async getListDocument(
+        @Res() res,
+        @Request() req,
+        @Query('page') page: number,
+        @Query('pageSize') pageSize: number,
+    ) {
+        try {
+            const user = await this.userService.verifyByToken(req.headers.authorization);
+            const documents = await this.documentService.getListDocument(user, page, pageSize);
+            return res.status(HttpStatus.OK).json(documents);
+        } catch (error) {
+            return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(error);
+        }
+    }
+
+    @Get('/')
+    @ApiResponse({ status: 200, description: '', type: DocumentDto })
+    @ApiOperation({title: 'Get document.'})
+    @ApiImplicitQuery({
+        name: 'id',
+        description: 'The id of document',
+        required: true,
+        type: Number,
+    })
+    async getDocument(
+        @Res() res,
+        @Request() req,
+        @Query('id') id: number,
+    ) {
+        try {
+            const user = await this.userService.verifyByToken(req.headers.authorization);
+            const document = await this.documentService.getDocument(id, user);
+
+            if (!document) {
+                return res.status(HttpStatus.BAD_REQUEST).json({msg: 'Document doesn`t exist or permissions denied.'});
+            }
+
+            return res.status(HttpStatus.OK).json(document);
+        } catch (error) {
+            console.log(error)
             return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(error);
         }
     }
@@ -88,7 +151,7 @@ export class DocumentController {
       @Body() documentInfo: UpdateDocumentDto,
     ) {
         try {
-            const document = await this.service.updateDocument(req.user.id, documentInfo);
+            const document = await this.documentService.updateDocument(req.user.id, documentInfo);
 
             return res.status(HttpStatus.OK).json(document);
         } catch (error) {
@@ -106,7 +169,7 @@ export class DocumentController {
       @Query('id', new ValidateObjectId()) id: number,
     ) {
         try {
-            await this.service.deleteDocument(id);
+            await this.documentService.deleteDocument(id);
             return res.status(HttpStatus.OK).json({success: true});
         } catch (error) {
             return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(error);
