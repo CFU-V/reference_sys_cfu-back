@@ -32,6 +32,17 @@ export class UserService {
         }
     }
 
+    async comparePassword(id: number, password: string) {
+        const user = await this.userRepository
+            .findOne({ where: { id } });
+
+        if (await bcrypt.compare(password, user.password)) {
+            return true;
+        } else {
+            throw new HttpException('Invalid old password', HttpStatus.BAD_REQUEST);
+        }
+    }
+
     async findByPayload(payload: PayloadDTO) {
         return await this.userRepository.findOne({
             where: {
