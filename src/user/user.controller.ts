@@ -21,6 +21,7 @@ import { GetUsersResponseDto } from './dto/get-users-response.dto';
 import { UserDto } from './dto/user.dto';
 import { MeDto } from './dto/me.dto';
 import { ValidateMeDtoPipes } from '../shared/pipes/validate-me-dto.pipes';
+import { CredentialDto } from './dto/credential.dto';
 
 @ApiUseTags('user')
 @ApiBearerAuth()
@@ -52,6 +53,22 @@ export class UserController {
     ) {
         try {
             return res.status(HttpStatus.OK).json(await this.service.getUsers(id, page, pageSize));
+        } catch (error) {
+            return res.status(HttpStatus.BAD_REQUEST).json(error);
+        }
+    }
+
+    @Post('/comparePassword')
+    @UseGuards(AuthGuard('jwt'))
+    @ApiResponse({ status: 200, description: 'Compare current password.'})
+    @ApiOperation({title: 'Compare user password. Only for current user.'})
+    async comparePassword(
+        @Res() res,
+        @Request() req,
+        @Body() credential: CredentialDto,
+    ) {
+        try {
+            return res.status(HttpStatus.OK).json({success: await this.service.comparePassword(req.user.id, credential.password)});
         } catch (error) {
             return res.status(HttpStatus.BAD_REQUEST).json(error);
         }

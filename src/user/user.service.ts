@@ -58,6 +58,17 @@ export class UserService {
         });
     }
 
+    async comparePassword(id: number, password: string) {
+        const user = await this.userRepository
+            .findOne({ where: { id } });
+
+        if (await bcrypt.compare(password, user.password)) {
+            return true;
+        } else {
+            throw new HttpException('Invalid old password', HttpStatus.BAD_REQUEST);
+        }
+    }
+
     async registration(payload: RegistrationDTO) {
         const newUser = await this.userRepository.create(payload);
         newUser.role = await newUser.getRole();
