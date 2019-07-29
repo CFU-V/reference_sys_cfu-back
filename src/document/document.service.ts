@@ -4,6 +4,8 @@ import { EntitiesWithPaging } from '../common/paging/paging.entities';
 import { PAGE, PAGE_SIZE } from '../common/paging/paging.constants';
 import { DocumentDto, UpdateDocumentDto } from './dto/document.dto';
 import * as fs from 'fs';
+import * as path from 'path';
+import { DOCX } from '../common/constants';
 import * as convert from 'xml-js';
 import * as AdmZip from 'adm-zip';
 
@@ -49,10 +51,12 @@ export class DocumentService {
         };
 
         const document = await this.documentRepository.findOne(options);
-        const unzip = fs.readFileSync(document.link);
-        const zip = new AdmZip(document.link);
-        const xml = zip.readAsText('word/document2.xml');
-        console.log(convert.xml2json(xml));
+        if (document) {
+            const zip = new AdmZip(document.link);
+            const xml = zip.readAsText('word/document.xml');
+            console.log(xml);
+        }
+
         return document;
     }
 
