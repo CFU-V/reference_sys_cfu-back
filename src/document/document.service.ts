@@ -4,10 +4,7 @@ import { EntitiesWithPaging } from '../common/paging/paging.entities';
 import { PAGE, PAGE_SIZE } from '../common/paging/paging.constants';
 import { DocumentDto, UpdateDocumentDto } from './dto/document.dto';
 import * as fs from 'fs';
-import * as path from 'path';
-import { DOCX } from '../common/constants';
-import * as convert from 'xml-js';
-import * as AdmZip from 'adm-zip';
+import DocumentParser from "./document.parser";
 
 @Injectable()
 export class DocumentService {
@@ -47,14 +44,14 @@ export class DocumentService {
     async getDocument(id: number, user: any) {
         const options = {
             where: user ? { id } : { id, visibility: true },
-            attributes: ['link'],
+            attributes: ['id', 'link'],
         };
 
-        const document = await this.documentRepository.findOne(options);
+        let document = await this.documentRepository.findOne(options);
+
         if (document) {
-            const zip = new AdmZip(document.link);
-            const xml = zip.readAsText('word/document.xml');
-            console.log(xml);
+            const documentParser = new DocumentParser();
+            document = documentParser.format(document);
         }
 
         return document;
