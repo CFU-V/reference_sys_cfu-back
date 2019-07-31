@@ -2,78 +2,98 @@ import * as cheerio from "cheerio";
 import * as Zip from 'adm-zip';
 import * as convert from "xml2js";
 import { Document } from "./entities/document.entity";
-import {Inject, Injectable} from "@nestjs/common";
-import BookmarkData from "./data/bookmark.data";
-import {BOOKMARK_NAME_PATTERN, BOOKMARK_NAME_SELECTOR, BOOKMARK_TEXT_SELECTOR} from "../common/constants";
+import BookmarkData from './data/bookmark.data';
+import {
+    BOOKMARK_NAME_PATTERN,
+    BOOKMARK_NAME_SELECTOR, BOOKMARK_R_SELECTOR, BOOKMARK_SELECTOR,
+    BOOKMARK_TEXT_SELECTOR, DOCX_TPM_FOLDER_PATH, DOCX_XML_PATH
+} from '../common/constants';
+import * as path from "path";
 
-@Injectable()
+const cheerioOptions = {decodeEntities: false, xmlMode: true};
+
 export default class DocumentParser {
     private xmlParser: convert.Parser;
-    private formatedDocument: string;
+    private formattedDocument: CheerioStatic;
+    private zip: Zip;
+    private document: Document;
 
-    constructor(@Inject('DocumentRepository') private readonly documentRepository: typeof Document) {
+    constructor(private readonly documentRepository: typeof Document, document: Document) {
         this.xmlParser = new convert.Parser();
+        this.zip = new Zip(document.link);
+        this.document = document;
+        this.formattedDocument = cheerio.load(this.zip.readAsText(DOCX_XML_PATH), cheerioOptions);
+        this.zip.deleteFile(DOCX_XML_PATH);
     }
 
-    public async format(document: Document): Promise<string> {
-        this.formatedDocument = await this.extractDocument(document.link);
-
-        const childrens = await this.documentRepository.findAll({
-            where: { parentId: document.id },
+    public async format(): Promise<string> {
+        const childs = await this.documentRepository.findAll({
+            where: { parentId: this.document.id },
             attributes: ['link']
         });
 
-        for (const child of childrens) {
-            const bookmarks: Array<BookmarkData> = await this.getChildBookmarks(child.link)
+        for (const child of childs) {
+            const bookmarks: Array<BookmarkData> = await this.getChildBookmarks(child.link);
             await this.setMainBookmarks(bookmarks);
         }
+
+        await this.saveDocx();
+        return this.formattedDocument.xml();
     }
 
     private async setMainBookmarks(bookmarks: Array<BookmarkData>): Promise<void> {
-        const $ = cheerio.load(this.formatedDocument, {xmlMode: true});
-
-        $('w\\:bookmarkStart').each(async (i, el) => {
-            if (el.attribs[BOOKMARK_NAME_SELECTOR].match(new RegExp(BOOKMARK_NAME_PATTERN))) {
-                let node = el;
-                while (node.tagName !== BOOKMARK_TEXT_SELECTOR) {
-                    node = node.next ? node.next : node;
+        this.formattedDocument(BOOKMARK_SELECTOR).each(async (i, el) => {
+            if (bookmarks[el.attribs[BOOKMARK_NAME_SELECTOR]]) {
+                let node = await this.findNode(this.formattedDocument, el);
+                if (node) {
+                    this.formattedDocument(node).text(bookmarks[el.attribs[BOOKMARK_NAME_SELECTOR]].text);
                 }
-                $(node).text('Hello World');
             }
         });
-
-        this.formatedDocument = $.html();
     }
 
     private async getChildBookmarks(docPath: string): Promise<Array<BookmarkData>> {
         const bookmarks: Array<BookmarkData> = [];
         const xml = await this.extractDocument(docPath);
-        const $ = cheerio.load(xml, {xmlMode: true});
+        const $ = cheerio.load(xml, cheerioOptions);
 
-        $('w\\:bookmarkStart').each((i, el) => {
+        await $(BOOKMARK_SELECTOR).each(async (i, el) => {
             if (el.attribs[BOOKMARK_NAME_SELECTOR].match(new RegExp(BOOKMARK_NAME_PATTERN))) {
-                let node = el;
+                let node = await this.findNode($, el);
 
-                while (node.tagName !== BOOKMARK_TEXT_SELECTOR) {
-                    if (node.next) {
-                        node = node.next;
-                    } else {
-                        break;
+                if (node) {
+                    if (!bookmarks[el.attribs[BOOKMARK_NAME_SELECTOR]]) {
+                        bookmarks[el.attribs[BOOKMARK_NAME_SELECTOR]] = {
+                            name: el.attribs[BOOKMARK_NAME_SELECTOR],
+                            text: $(node).text(),
+                        }
                     }
                 }
-
-                bookmarks.push({
-                    name: el.attribs[BOOKMARK_NAME_SELECTOR],
-                    text: $(node).text(),
-                });
             }
         });
 
         return bookmarks;
     }
 
+    private async findNode($: CheerioStatic, node: CheerioElement): Promise<Cheerio> {
+        while (node.tagName !== BOOKMARK_R_SELECTOR) {
+            if (node.next) {
+                node = node.next;
+            } else {
+                break;
+            }
+        }
+
+        return node.tagName === BOOKMARK_R_SELECTOR ? $(node).children(BOOKMARK_TEXT_SELECTOR) : null;
+    }
+
     private async extractDocument(docPath: string): Promise<string> {
         const zip = new Zip(docPath);
-        return await zip.readAsText('word/document.xml');
+        return await zip.readAsText(DOCX_XML_PATH);
+    }
+
+    private async saveDocx(): Promise<void> {
+        await this.zip.addFile(DOCX_XML_PATH, Buffer.from(this.formattedDocument.xml()));
+        await this.zip.writeZip(path.resolve(__dirname, `${DOCX_TPM_FOLDER_PATH}/${path.basename(this.document.link)}`));
     }
 }

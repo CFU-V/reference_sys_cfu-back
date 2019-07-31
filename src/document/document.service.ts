@@ -50,8 +50,8 @@ export class DocumentService {
         let document = await this.documentRepository.findOne(options);
 
         if (document) {
-            const documentParser = new DocumentParser();
-            document = documentParser.format(document);
+            const documentParser = new DocumentParser(this.documentRepository, document);
+            document = documentParser.format();
         }
 
         return document;
@@ -79,8 +79,17 @@ export class DocumentService {
         const document = await this.documentRepository.findOne({ where: {id} });
 
         if (document) {
-            fs.unlinkSync(document.link);
-            return await document.destroy();
+            const t = this.documentRepository.sequelize.transaction();
+            try {
+                const deleted = await document.destroy({transaction: t});
+
+                t.commit();
+                fs.unlinkSync(document.link);
+                return deleted;
+            } catch (e) {
+                t.rollback();
+                throw e;
+            }
         } else {
           return new HttpException(`Document with id ${document.id} doesn\`t exist.`, HttpStatus.BAD_REQUEST);
         }
