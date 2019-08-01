@@ -79,7 +79,7 @@ export class DocumentService {
         const document = await this.documentRepository.findOne({ where: {id} });
 
         if (document) {
-            const t = this.documentRepository.sequelize.transaction();
+            const t = await this.documentRepository.sequelize.transaction();
             try {
                 const deleted = await document.destroy({transaction: t});
 

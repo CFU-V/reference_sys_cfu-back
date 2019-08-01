@@ -14,7 +14,7 @@ const cheerioOptions = {decodeEntities: false, xmlMode: true};
 
 export default class DocumentParser {
     private xmlParser: convert.Parser;
-    private formattedDocument: CheerioStatic;
+    private readonly formattedDocument: CheerioStatic;
     private zip: Zip;
     private document: Document;
 
