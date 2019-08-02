@@ -10,7 +10,7 @@ import { PAGE, PAGE_SIZE } from '../common/paging/paging.constants';
 import { UserDto } from './dto/user.dto';
 import { MeDto } from './dto/me.dto';
 import { Op } from 'sequelize';
-import { Document } from '../document/entities/document.entity';
+import { verify } from 'jsonwebtoken';
 
 @Injectable()
 export class UserService {
@@ -30,6 +30,18 @@ export class UserService {
             return this.sanitizeUser(user);
         } else {
             throw new HttpException('Invalid credentials', HttpStatus.UNAUTHORIZED);
+        }
+    }
+
+    async verifyByToken(token: string) {
+        if (token) {
+            try {
+                return await verify(token.replace('Bearer ', ''), process.env.SECRET_KEY);
+            } catch (error) {
+                return undefined;
+            }
+        } else {
+            return undefined;
         }
     }
 
