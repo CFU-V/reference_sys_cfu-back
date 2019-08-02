@@ -53,6 +53,8 @@
     "sequelize-typescript": "^1.0.0-alpha.9",
     "swagger-ui-express": "^4.0.7",
     "unzipper": "^0.10.1",
+    "winston": "^3.2.1",
+    "winston-daily-rotate-file": "^3.10.0",
     "xml-js": "^1.6.11",
     "xml2js": "^0.4.19"
   },

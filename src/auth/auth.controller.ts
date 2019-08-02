@@ -5,6 +5,7 @@ import { PayloadDTO } from './dto/payload.dto';
 import { LoginDTO } from './dto/login.dto';
 import { AuthService } from './auth.service';
 import { RegistrationDTO } from './dto/registration.dto';
+import logger from '../core/logger';
 
 @ApiUseTags('auth')
 @Controller('auth')
@@ -29,6 +30,7 @@ export class AuthController {
     };
     const token = await this.authService.signPayload(payload);
     res.status(HttpStatus.OK).json({ user, token });
+    logger.info(`LOGIN: ${JSON.stringify(user)}`);
   }
 
   @Post('registration')
@@ -41,9 +43,10 @@ export class AuthController {
     try {
       const user = await this.userService.registration(registrationPayload);
 
-      return res.status(HttpStatus.OK).json(user);
+      res.status(HttpStatus.OK).json(user);
+      logger.info(`REGISTRATION: ${JSON.stringify(user)}`);
     } catch (error) {
-      return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(error);
+      res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(error);
     }
   }
 }

@@ -17,6 +17,7 @@ import { ApiUseTags, ApiBearerAuth, ApiResponse, ApiImplicitQuery, ApiOperation 
 import { AuthGuard } from '@nestjs/passport';
 import { ValidateObjectId } from '../shared/pipes/validate-object-id.pipes';
 import { BookmarkDto } from './dto/bookmark.dto';
+import * as logger from "../core/_Logger";
 
 @ApiUseTags('bookmarks')
 @ApiBearerAuth()
@@ -35,7 +36,8 @@ export class BookmarkController {
     ) {
         try {
             const bookmark = await this.service.addBookmark(req.user.id, newBookmark.docId, newBookmark.control);
-            return res.status(HttpStatus.OK).json(bookmark);
+            res.status(HttpStatus.OK).json(bookmark);
+            logger.info(`ADD_BOOKMARK: {user_id: ${req.user.id}}`);
         } catch (error) {
             return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(error);
         }
