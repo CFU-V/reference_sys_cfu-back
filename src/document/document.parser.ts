@@ -29,7 +29,8 @@ export default class DocumentParser {
     public async format(): Promise<string> {
         const childs = await this.documentRepository.findAll({
             where: { parentId: this.document.id },
-            attributes: ['link']
+            attributes: ['link'],
+            order: [['id', 'asc']]
         });
 
         for (const child of childs) {
@@ -71,7 +72,6 @@ export default class DocumentParser {
                 }
             }
         });
-
         return bookmarks;
     }
 
