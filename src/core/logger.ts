@@ -7,7 +7,7 @@ const transport = new (DailyRotateFile) ({
     zippedArchive: true,
     maxSize: '1gb',
     dirname: process.env.LOG_DIR,
-    maxFiles: '7d'
+    maxFiles: '90d'
 });
 
 const logger = winston.createLogger({

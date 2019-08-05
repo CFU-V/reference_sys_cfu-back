@@ -19,4 +19,8 @@ export const DOCX_TPM_FOLDER_PATH: string = 'tmp';
 /*
     Logging.
  */
-export const ADD_BOOKMARK: string = 'ADD_BOOKMARK';
+export const BOOKMARK = {
+    ADD: 'ADD_BOOKMARK',
+    UPD: 'UPDATE_BOOKMARK',
+    DEL: 'DELETE_BOOKMARK'
+};
