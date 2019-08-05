@@ -13,6 +13,7 @@ import {
     BelongsTo,
 } from 'sequelize-typescript';
 import { User } from '../../user/entities/user.entity';
+import {Category} from "./category.entity";
 
 @Table({
     timestamps: true,
@@ -37,9 +38,12 @@ export class Document extends Model<Document> {
     @Column({type: DataType.STRING(6000)})
     info: string;
 
-    @AllowNull(false)
-    @Column({type: DataType.STRING(128)})
-    type: string;
+    @ForeignKey(() => Category)
+    @Column({
+        type: DataType.INTEGER,
+        allowNull: false,
+    })
+    categoryId: number;
 
     @AllowNull(false)
     @Default(true)
@@ -51,9 +55,13 @@ export class Document extends Model<Document> {
     @Column({type: DataType.BOOLEAN})
     visibility: boolean;
 
-    @AllowNull(true)
-    @Column({type: DataType.STRING(256)})
+    @AllowNull(false)
+    @Column({type: DataType.STRING(1024)})
     link: string;
+
+    @AllowNull(true)
+    @Column({type: DataType.STRING(1024)})
+    consultant_link: string;
 
     @AllowNull(true)
     @Default(false)
@@ -89,4 +97,7 @@ export class Document extends Model<Document> {
 
     @BelongsTo(() => Document)
     parent: Document;
+
+    @BelongsTo(() => Category)
+    category: Category;
 }
