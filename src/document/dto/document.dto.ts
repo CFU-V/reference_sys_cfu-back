@@ -35,3 +35,12 @@ export class UpdateDocumentDto {
   @ApiModelProperty({required: false})
   renew: boolean;
 }
+
+export class IndexedDocumentDto {
+  id: number;
+  title: string;
+  info: string;
+  text: string;
+  type: string;
+  createdAt: Date;
+}
