@@ -8,11 +8,13 @@ export class DocumentDto {
   @ApiModelProperty()
   info: string;
   @ApiModelProperty()
-  type: string;
+  categoryId: number;
   @ApiModelProperty()
   active: boolean;
   @ApiModelProperty()
   visibility: boolean;
+  @ApiModelProperty({required: false})
+  consultant_link: string;
   @ApiModelProperty()
   renew: boolean;
 }
@@ -27,7 +29,7 @@ export class UpdateDocumentDto {
   @ApiModelProperty({required: false})
   info: string;
   @ApiModelProperty({required: false})
-  type: string;
+  categoryId: number;
   @ApiModelProperty({required: false})
   active: boolean;
   @ApiModelProperty({required: false})
