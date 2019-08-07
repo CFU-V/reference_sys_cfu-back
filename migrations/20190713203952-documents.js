@@ -18,9 +18,13 @@ module.exports = {
         allowNull: false,
         type: Sequelize.STRING(6000),
       },
-      type: {
+      categoryId: {
         allowNull: false,
-        type: Sequelize.STRING(128),
+        references: {
+          model: 'categories',
+          key: 'id'
+        },
+        type: Sequelize.INTEGER,
       },
       active: {
         allowNull: false,
@@ -49,8 +53,12 @@ module.exports = {
         type: Sequelize.INTEGER,
       },
       link: {
+        allowNull: false,
+        type: Sequelize.Sequelize.STRING(1024),
+      },
+      consultant_link: {
         allowNull: true,
-        type: Sequelize.Sequelize.STRING(256),
+        type: Sequelize.Sequelize.STRING(1024),
       },
       renew: {
         allowNull: true,

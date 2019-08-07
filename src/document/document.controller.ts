@@ -40,7 +40,7 @@ export class DocumentController {
     @Post('/')
     @UseGuards(AuthGuard('staff'))
     @ApiConsumes('multipart/form-data')
-    @ApiImplicitFile({ name: 'file', required: true })
+    @ApiImplicitFile({ name: 'file', required: false })
     @ApiResponse({ status: 200, description: 'Created document info', type: DocumentDto })
     @ApiOperation({title: 'Add new document.'})
     @UseInterceptors(FileInterceptor('file',
@@ -54,8 +54,8 @@ export class DocumentController {
         }),
         fileFilter: (req, file, cb) => {
             const ext = path.extname(file.originalname);
-            if (ext !== '.doc' && ext !== '.docx') {
-                return cb(new Error('Only doc/docx are allowed'), false);
+            if (ext !== '.docx') {
+                return cb(new Error('Only docx are allowed'), false);
             }
             cb(null, true);
         },
