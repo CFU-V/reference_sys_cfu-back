@@ -1,16 +1,17 @@
 import * as natural from 'natural';
 const tokenizer = new natural.WordTokenizer();
 import * as config from '../../config/search';
-import {IndexedDocumentDto } from "../document/dto/document.dto";
+import { IndexedDocumentDto, IndexingDocumentDto } from "../document/dto/document.dto";
 
 export class Map {
-    static async documents(document: IndexedDocumentDto): Promise<IndexedDocumentDto> {
+    static async documents(document: IndexingDocumentDto): Promise<IndexedDocumentDto> {
         return {
             id: document.id,
             title: document.title,
             info: document.info,
+            //TODO TEXT EXTRACTOR
             text: await Map.getWords(document.text),
-            type: document.type,
+            category: document.category.title,
             createdAt: document.createdAt,
         };
     }

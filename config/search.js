@@ -18,7 +18,7 @@ module.exports = {
       fuzziness: 2
     },
     {
-      name: "type",
+      name: "category",
       boost: 2,
       fuzziness: 2
     },

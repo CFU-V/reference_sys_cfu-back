@@ -4,6 +4,8 @@ import { DOCUMENT_INDEX } from '../common/constants';
 import {Inject, Injectable, OnModuleInit} from "@nestjs/common";
 import { Document } from "../document/entities/document.entity";
 import { CronJob } from "cron";
+import {Role} from "../user/entities/role.entity";
+import {Category} from "../document/entities/category.entity";
 const { Client } = require('@elastic/elasticsearch');
 const esClient = new Client({ node: process.env.ELASTIC_URI });
 
@@ -13,7 +15,7 @@ export class SearchIndexing implements OnModuleInit {
         @Inject('DocumentRepository') private readonly documentRepository: typeof Document,
     ) {}
 
-    onModuleInit() {
+    async onModuleInit() {
         console.log('INIT...');
         this._do();
     }
@@ -28,13 +30,16 @@ export class SearchIndexing implements OnModuleInit {
             documents: [],
         };
 
-        let documents = await this.documentRepository.findAll({where: {parentId: null}});
+        let documents = await this.documentRepository.findAll({
+            where: { parentId: null },
+            include: [{model: Category, as: 'category', attributes: ['title']}]
+        });
 
         for (let document of documents) {
             const documentParser = new DocumentParser(this.documentRepository, document);
             document.setDataValue('text', await documentParser.format());
 
-            let item = await Map.documents(document);
+            let item = await Map.documents(document.get({ plain: true }));
 
             data.documents.push(item);
         }
@@ -42,35 +47,36 @@ export class SearchIndexing implements OnModuleInit {
         this.bulkIndex(DOCUMENT_INDEX, data.documents);
     }
 
-    bulkIndex(index, data) {
-        let bulkBody = [];
+    async bulkIndex(index, data) {
+        try {
+            let bulkBody = data.flatMap(item => [{ index: { _index: index, _id: item.id } }, item]);
 
-        data.forEach(item => {
-            bulkBody.push({
-                index: {
-                    _index: index,
-                    _id: item.id
-                }
-            });
+            const { body: bulkResponse } = await esClient.bulk({ body: bulkBody, refresh: true });
 
-            bulkBody.push(item);
-        });
+            if (bulkResponse.errors) {
+                const erroredDocuments = [];
 
+                bulkResponse.items.forEach((action, i) => {
+                    const operation = Object.keys(action)[0];
 
-        esClient.bulk({body: bulkBody})
-            .then(response => {
-                let errorCount = 0;
-                response.items.forEach(item => {
-                    if (item.index && item.index.error) {
-                        console.log(++errorCount, item.index.error);
+                    if (action[operation].error) {
+                        erroredDocuments.push({
+                            status: action[operation].status,
+                            error: action[operation].error,
+                            operation: bulkBody[i * 2],
+                            document: bulkBody[i * 2 + 1]
+                        })
                     }
                 });
-                console.log(
-                    `Successfully indexed ${data.length - errorCount}
-                    out of ${data.length} items`
-                );
-            })
-            .catch(error => console.log(error));
+
+                console.log(`Errored documents: ${erroredDocuments}`)
+            }
+
+            const { body: count } = await esClient.count({ index });
+            console.log(`Successfully indexed ${JSON.stringify(count)} documents`);
+        } catch (error) {
+            console.log(error)
+        }
     };
 
     indices() {

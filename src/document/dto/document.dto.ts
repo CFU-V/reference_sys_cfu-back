@@ -1,4 +1,5 @@
 import { ApiModelProperty } from '@nestjs/swagger';
+import {Category } from "../entities/category.entity";
 
 export class DocumentDto {
   @ApiModelProperty()
@@ -38,11 +39,20 @@ export class UpdateDocumentDto {
   renew: boolean;
 }
 
+export class IndexingDocumentDto {
+  id: number;
+  title: string;
+  info: string;
+  text: string;
+  category: Category;
+  createdAt: Date;
+}
+
 export class IndexedDocumentDto {
   id: number;
   title: string;
   info: string;
   text: string;
-  type: string;
+  category: string;
   createdAt: Date;
 }
