@@ -9,4 +9,4 @@ export const BOOKMARK_NAME_PATTERN: RegExp = /^Замена[0-9]{1,}$/;
 export const DOCX_XML_PATH: string = 'word/document.xml';
 export const DOCX_TPM_FOLDER_PATH: string = 'tmp';
 export const DOCUMENT_INDEX: string = 'documents';
-export const ALL_INDEX: string = '*';
+export const ALL_INDEX: string = '_all';

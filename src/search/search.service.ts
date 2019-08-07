@@ -1,14 +1,15 @@
 import * as config from "../../config/search";
-import {ALL_INDEX, DOCUMENT_INDEX} from "../common/constants";
-import {Inject, Injectable} from "@nestjs/common";
-import {Document} from "../document/entities/document.entity";
+import { ALL_INDEX } from "../common/constants";
+import { Inject, Injectable } from "@nestjs/common";
+import { Document } from "../document/entities/document.entity";
 import { IFieldQuery } from "./dto/field.query.interface";
 import { ISearchResponseInterface } from "./dto/search.response.interface";
 import { IndexedDocumentDto } from "../document/dto/document.dto";
 import { ISearchBodyInterface } from "./dto/search.body.interface";
-import {IMustQuery} from "./dto/must.query.interface";
-const { Client, RequestParams } = require('@elastic/elasticsearch');
-const esClient = new Client({ node: 'http://localhost:9200' });
+import { IMustQuery } from "./dto/must.query.interface";
+import { IShouldQuery } from "./dto/should.query.interface";
+const { Client } = require('@elastic/elasticsearch');
+const esClient = new Client({ node: process.env.ELASTIC_URI });
 
 @Injectable()
 export class SearchService {
@@ -44,11 +45,19 @@ export class SearchService {
 
         for (const fieldQuery of fieldsQuery) {
             const match = {};
-            match[fieldQuery.field] = {
-                query: fieldQuery.query,
-            };
+            const configuration = config.terms.find((el) => {
+                return el.name === fieldQuery.field
+            });
 
-            must.push({ match })
+            if (configuration) {
+                match[fieldQuery.field] = {
+                    query: fieldQuery.query,
+                    boost: configuration.boost,
+                    fuzziness: configuration.fuzziness,
+                };
+
+                must.push({ match })
+            }
         }
 
         return must;
@@ -77,7 +86,7 @@ export class SearchService {
 
     async searchData(query: string, from: number = 0, size: number = 10, content: Array<string> = [ALL_INDEX]): Promise<Array<object>> {
         try {
-            let body = {
+            let body: ISearchBodyInterface<IShouldQuery>= {
                 size: size,
                 from: from,
                 query: {

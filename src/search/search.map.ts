@@ -1,4 +1,4 @@
-import natural from 'natural';
+import * as natural from 'natural';
 const tokenizer = new natural.WordTokenizer();
 import * as config from '../../config/search';
 import {IndexedDocumentDto } from "../document/dto/document.dto";

@@ -1,14 +1,29 @@
-import { Map } from '../search/search.map';
+import { Map } from './search.map';
+import DocumentParser from '../document/document.parser';
+import { DOCUMENT_INDEX } from '../common/constants';
+import {Inject, Injectable, OnModuleInit} from "@nestjs/common";
 import { Document } from "../document/entities/document.entity";
-import DocumentParser from "../document/document.parser";
-import {DOCUMENT_INDEX} from "../common/constants";
+import { CronJob } from "cron";
 const { Client } = require('@elastic/elasticsearch');
 const esClient = new Client({ node: process.env.ELASTIC_URI });
 
-export class Indexing {
-    constructor(private readonly documentRepository: typeof Document) {}
+@Injectable()
+export class SearchIndexing implements OnModuleInit {
+    constructor(
+        @Inject('DocumentRepository') private readonly documentRepository: typeof Document,
+    ) {}
+
+    onModuleInit() {
+        console.log('INIT...');
+        this._do();
+    }
+
+    indexCronJob() {
+        return new CronJob('*/3 * * * *', this._do);
+    }
 
     async _do() {
+        console.log('Start indexing ...');
         let data = {
             documents: [],
         };
