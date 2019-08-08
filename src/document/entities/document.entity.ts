@@ -10,10 +10,14 @@ import {
     PrimaryKey,
     ForeignKey,
     AutoIncrement,
-    BelongsTo, BelongsToMany,
+    BelongsTo, BelongsToMany, BeforeUpdate, BeforeCreate, BeforeDestroy, AfterCreate,
 } from 'sequelize-typescript';
 import { User } from '../../user/entities/user.entity';
-import {Category} from "./category.entity";
+import { Category } from "./category.entity";
+import { SearchIndexing } from "../../search/search.indexing";
+import {DOCUMENT_INDEX} from "../../common/constants";
+import {Map} from "../../search/search.map";
+import DocumentParser from "../document.parser";
 
 @Table({
     timestamps: true,
@@ -100,4 +104,46 @@ export class Document extends Model<Document> {
 
     @BelongsTo(() => Category)
     category: Category;
+
+    @BeforeUpdate
+    @AfterCreate
+    static async _indexing(document: Document) {
+        try {
+            const searchIndexing = new SearchIndexing(Document);
+            if (!document.parentId) {
+                await searchIndexing.bulkIndex(DOCUMENT_INDEX, [await this.getDocumentData(document.id)]);
+            } else {
+                await searchIndexing.deleteIfExist(DOCUMENT_INDEX, document.id);
+                await searchIndexing.update(DOCUMENT_INDEX, [await this.getDocumentData(document.parentId)])
+            }
+        } catch (error) {
+            console.log(error);
+        }
+    }
+
+    @BeforeDestroy
+    static async _deleteIndex(document: Document) {
+        try {
+            const searchIndexing = new SearchIndexing(Document);
+            await searchIndexing.deleteIfExist(DOCUMENT_INDEX, document.id);
+        } catch (error) {
+            console.log(error);
+        }
+    }
+
+    static async getDocumentData(id: number) {
+        try {
+            const doc = await this.findOne({
+                where: { id },
+                include: [{model: Category, as: 'category', attributes: ['title']}]
+            });
+
+            const documentParser = new DocumentParser(Document, doc);
+            doc.setDataValue('text', await documentParser.extract());
+
+            return await Map.documents(doc.get({ plain: true }));
+        } catch (error) {
+            console.log(error);
+        }
+    }
 }

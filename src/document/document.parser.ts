@@ -9,6 +9,7 @@ import {
     BOOKMARK_TEXT_SELECTOR, DOCX_TPM_FOLDER_PATH, DOCX_XML_PATH
 } from '../common/constants';
 import * as path from "path";
+import * as textract from 'textract';
 
 const cheerioOptions = {decodeEntities: false, xmlMode: true};
 
@@ -27,6 +28,22 @@ export default class DocumentParser {
     }
 
     public async format(): Promise<string> {
+        await this.setChilds();
+        await this.saveDocx();
+        return await this.formattedDocument.xml();
+    }
+
+    public async extract(): Promise<string> {
+        await this.format();
+        return new Promise(async (resolve, reject) => {
+            textract.fromFileWithPath(this.getPathForTempDocument(), (error, text) => {
+                if (error) reject(error);
+                resolve(text);
+            });
+        });
+    }
+
+    private async setChilds(): Promise<void> {
         const childs = await this.documentRepository.findAll({
             where: { parentId: this.document.id },
             attributes: ['link'],
@@ -37,9 +54,6 @@ export default class DocumentParser {
             const bookmarks: Array<BookmarkData> = await this.getChildBookmarks(child.link);
             await this.setMainBookmarks(bookmarks);
         }
-
-        await this.saveDocx();
-        return this.formattedDocument.xml();
     }
 
     private async setMainBookmarks(bookmarks: Array<BookmarkData>): Promise<void> {
@@ -94,6 +108,10 @@ export default class DocumentParser {
 
     private async saveDocx(): Promise<void> {
         await this.zip.addFile(DOCX_XML_PATH, Buffer.from(this.formattedDocument.xml()));
-        await this.zip.writeZip(path.resolve(__dirname, `${DOCX_TPM_FOLDER_PATH}/${path.basename(this.document.link)}`));
+        await this.zip.writeZip(this.getPathForTempDocument());
+    }
+
+    private getPathForTempDocument() : string {
+        return path.resolve(__dirname, `${DOCX_TPM_FOLDER_PATH}/${path.basename(this.document.link)}`);
     }
 }

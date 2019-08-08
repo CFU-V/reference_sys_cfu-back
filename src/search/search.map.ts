@@ -9,7 +9,6 @@ export class Map {
             id: document.id,
             title: document.title,
             info: document.info,
-            //TODO TEXT EXTRACTOR
             text: await Map.getWords(document.text),
             category: document.category.title,
             createdAt: document.createdAt,
