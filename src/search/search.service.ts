@@ -84,15 +84,25 @@ export class SearchService {
         }
     }
 
-    async searchData(query: string, from: number = 0, size: number = 10, content: string = ALL_INDEX): Promise<Array<object>> {
+    async searchData(query: string, from: number = 0, size: number = 10, content: string = ALL_INDEX, visibility: boolean = true): Promise<Array<object>> {
         try {
+            const should = this.getShouldQuery(query.split("|"));
+
+            should.push({
+                math: {
+                    visibility: {
+                        query: visibility,
+                        boost: 3,
+                        operator: "AND"
+                    }
+                }
+            });
+
             let body: ISearchBodyInterface<IShouldQuery>= {
                 size: size,
                 from: from,
                 query: {
-                    bool: {
-                        should: this.getShouldQuery(query.split("|"))
-                    }
+                    bool: { should }
                 }
             };
             let results: ISearchResponseInterface<IndexedDocumentDto> = await this.search(content, body);
@@ -105,13 +115,12 @@ export class SearchService {
 
     async searchByFields(fieldsQuery: Array<IFieldQuery>, from: number = 0, size: number = 10, content: string = ALL_INDEX): Promise<Array<object>> {
         try {
+            const must = await this.getMustQuery(fieldsQuery);
             let body: ISearchBodyInterface<IMustQuery> = {
                 size: size,
                 from: from,
                 query: {
-                    bool: {
-                        must: await this.getMustQuery(fieldsQuery)
-                    }
+                    bool: { must }
                 }
             };
             let results: ISearchResponseInterface<IndexedDocumentDto> = await this.search(content, body);

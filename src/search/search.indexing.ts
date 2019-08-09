@@ -69,7 +69,7 @@ export class SearchIndexing implements OnModuleInit {
                     }
                 });
 
-                console.log(`Errored documents: ${erroredDocuments}`)
+                console.log(`Errored documents: ${JSON.stringify(erroredDocuments)}`)
             }
 
             const { body: count } = await esClient.count({ index });
@@ -81,14 +81,19 @@ export class SearchIndexing implements OnModuleInit {
 
     async update(index, item) {
         try {
-            let updateBody = [{ index: { _index: index, _id: item.id } }, item];
+            let updateBody = { doc : item };
 
-            const { body: bulkResponse } = await esClient.bulk({ body: updateBody, refresh: true });
+            const { body: updateResponse } = await esClient.update({
+                index: index,
+                id: item.id,
+                body: updateBody,
+                refresh: true
+            });
 
-            if (bulkResponse.errors) {
+            if (updateResponse.errors) {
                 const erroredDocuments = [];
 
-                bulkResponse.items.forEach((action, i) => {
+                updateResponse.items.forEach((action, i) => {
                     const operation = Object.keys(action)[0];
 
                     if (action[operation].error) {
@@ -107,7 +112,7 @@ export class SearchIndexing implements OnModuleInit {
             const { body: count } = await esClient.count({ index });
             console.log(`Successfully updated index of ${JSON.stringify(count)} document`);
         } catch (error) {
-            console.log(error)
+            console.log(JSON.stringify(error))
         }
     };
 

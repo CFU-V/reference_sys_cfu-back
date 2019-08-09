@@ -114,7 +114,7 @@ export class Document extends Model<Document> {
                 await searchIndexing.bulkIndex(DOCUMENT_INDEX, [await this.getDocumentData(document.id)]);
             } else {
                 await searchIndexing.deleteIfExist(DOCUMENT_INDEX, document.id);
-                await searchIndexing.update(DOCUMENT_INDEX, [await this.getDocumentData(document.parentId)])
+                await searchIndexing.update(DOCUMENT_INDEX, await this.getDocumentData(document.parentId))
             }
         } catch (error) {
             console.log(error);

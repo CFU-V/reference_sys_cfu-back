@@ -44,6 +44,7 @@ export class IndexingDocumentDto {
   title: string;
   info: string;
   text: string;
+  visibility: boolean;
   category: Category;
   createdAt: Date;
 }
@@ -54,5 +55,6 @@ export class IndexedDocumentDto {
   info: string;
   text: string;
   category: string;
+  visibility: boolean;
   createdAt: Date;
 }

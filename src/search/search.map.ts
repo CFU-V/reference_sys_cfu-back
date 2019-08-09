@@ -11,6 +11,7 @@ export class Map {
             info: document.info,
             text: await Map.getWords(document.text),
             category: document.category.title,
+            visibility: document.visibility,
             createdAt: document.createdAt,
         };
     }

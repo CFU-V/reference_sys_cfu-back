@@ -57,12 +57,13 @@ export class SearchController {
         @Res() res,
         @Request() req,
         @Query('search') search: string,
+        @Query('visibility') visibility: boolean,
         @Query('from') from: number,
         @Query('to') to: number,
         @Query('content') content: string,
     ) {
         try {
-            const result = search ? await this.searchService.searchData(search, from, to, content) : await this.searchService.searchAllData();
+            const result = search ? await this.searchService.searchData(search, from, to, content, visibility) : await this.searchService.searchAllData();
             return res.status(HttpStatus.OK).json(result);
         } catch (error) {
             return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(error);
