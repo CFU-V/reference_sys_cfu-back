@@ -10,6 +10,7 @@ import {
 } from '../common/constants';
 import * as path from "path";
 import * as textract from 'textract';
+import * as fs from "fs";
 
 const cheerioOptions = {decodeEntities: false, xmlMode: true};
 
@@ -39,6 +40,7 @@ export default class DocumentParser {
             textract.fromFileWithPath(this.getPathForTempDocument(), (error, text) => {
                 if (error) reject(error);
                 resolve(text);
+                fs.unlinkSync(this.getPathForTempDocument());
             });
         });
     }

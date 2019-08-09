@@ -21,11 +21,6 @@ module.exports = {
       name: "category",
       boost: 2,
       fuzziness: 2
-    },
-    {
-      name: "createdAt",
-      boost: 2,
-      fuzziness: 2
     }
   ],
   stopWords: [

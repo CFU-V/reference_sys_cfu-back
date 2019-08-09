@@ -17,8 +17,12 @@ export class SearchService {
         @Inject('DocumentRepository') private readonly documentRepository: typeof Document,
     ) {}
 
-    private async search(index: Array<string>, body: object) {
-        return await esClient.search({index, body});
+    private async search(index: string, body: object) {
+        try {
+            return await esClient.search({index, body});
+        } catch (error) {
+            throw error
+        }
     };
 
     private getShouldQuery(queries: Array<string>): Array<object> {
@@ -63,28 +67,24 @@ export class SearchService {
         return must;
     };
 
-    searchAllData() {
-        let body = {
-            size: 20,
-            from: 0,
-            query: {
-                match_all: {}
-            }
-        };
+    async searchAllData() {
+        try {
+            let body = {
+                size: 20,
+                from: 0,
+                query: {
+                    match_all: {}
+                }
+            };
 
-        this.search([ALL_INDEX], body)
-            .then(results => {
-                console.log(`found ${results.hits.total} items in ${results.took}ms`);
-                results.hits.hits.forEach(
-                    (hit, index) => console.log(
-                        JSON.stringify(hit._source)
-                    )
-                )
-            })
-            .catch(error => {return error});
+            const results = await this.search(ALL_INDEX, body);
+            return results.body.hits.hits
+        } catch (error) {
+            return error;
+        }
     }
 
-    async searchData(query: string, from: number = 0, size: number = 10, content: Array<string> = [ALL_INDEX]): Promise<Array<object>> {
+    async searchData(query: string, from: number = 0, size: number = 10, content: string = ALL_INDEX): Promise<Array<object>> {
         try {
             let body: ISearchBodyInterface<IShouldQuery>= {
                 size: size,
@@ -95,16 +95,15 @@ export class SearchService {
                     }
                 }
             };
-            let results = await this.search(content, body);
-            console.log(`found ${results.hits.total} items in ${results.took}ms`);
-            console.log(JSON.stringify(body));
-            return results.hits.hits
+            let results: ISearchResponseInterface<IndexedDocumentDto> = await this.search(content, body);
+            console.log(`found ${results.body.hits.total.value} items in ${results.body.took}ms`);
+            return results.body.hits.hits
         } catch (error) {
             return error
         }
     }
 
-    async searchByFields(fieldsQuery: Array<IFieldQuery>, from: number = 0, size: number = 10, content: Array<string> = [ALL_INDEX]): Promise<Array<object>> {
+    async searchByFields(fieldsQuery: Array<IFieldQuery>, from: number = 0, size: number = 10, content: string = ALL_INDEX): Promise<Array<object>> {
         try {
             let body: ISearchBodyInterface<IMustQuery> = {
                 size: size,
@@ -116,9 +115,8 @@ export class SearchService {
                 }
             };
             let results: ISearchResponseInterface<IndexedDocumentDto> = await this.search(content, body);
-            console.log(`found ${results.hits.total} items in ${results.took}ms`);
-            console.log(JSON.stringify(body));
-            return results.hits.hits
+            console.log(`found ${results.body.hits.total.value} items in ${results.body.took}ms`);
+            return results.body.hits.hits
         } catch (error) {
             return error
         }
