@@ -10,3 +10,4 @@ export const DOCX_XML_PATH: string = 'word/document.xml';
 export const DOCX_TPM_FOLDER_PATH: string = 'tmp';
 export const DOCUMENT_INDEX: string = 'documents';
 export const ALL_INDEX: string = '_all';
+export const TOKENIZE_REGEXP: RegExp = /[a-zА-Я0-9]/gi;

@@ -2,6 +2,7 @@ import * as natural from 'natural';
 const tokenizer = new natural.WordTokenizer();
 import * as config from '../../config/search';
 import { IndexedDocumentDto, IndexingDocumentDto } from "../document/dto/document.dto";
+import {TOKENIZE_REGEXP} from "../common/constants";
 
 export class Map {
     static async documents(document: IndexingDocumentDto): Promise<IndexedDocumentDto> {
@@ -12,7 +13,7 @@ export class Map {
             text: await Map.getWords(document.text),
             category: document.category.title,
             visibility: document.visibility,
-            createdAt: document.createdAt,
+            createdAt: this.refCreatedAt(document.createdAt).toString(),
         };
     }
 
@@ -23,7 +24,7 @@ export class Map {
         for (const token of tokenized) {
             if (config.stopWords.indexOf(token) == -1) {
                 let resultToken = token.toLowerCase();
-                if (resultToken.match(/[a-zА-Я0-9]/gi)) {
+                if (resultToken.match(TOKENIZE_REGEXP)) {
                     resultToken = natural.PorterStemmer.stem(resultToken);
                 }
                 stemmed.push(resultToken);
@@ -32,4 +33,9 @@ export class Map {
 
         return stemmed.join(' ');
     }
+
+    static refCreatedAt(createdAt: Date): number {
+        const date = new Date(createdAt);
+        return new Date(`${date.getMonth() + 1}-${date.getDate()}-${date.getFullYear()}`).getTime();
+    };
 }

@@ -56,5 +56,5 @@ export class IndexedDocumentDto {
   text: string;
   category: string;
   visibility: boolean;
-  createdAt: Date;
+  createdAt: string;
 }
