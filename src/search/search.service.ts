@@ -88,19 +88,21 @@ export class SearchService {
         try {
             const should = this.getShouldQuery(query.split("|"));
 
-            should.push({
-                math: {
-                    visibility: {
-                        query: visibility,
-                        boost: 3,
-                        operator: "AND"
+            if (visibility) {
+                should.push({
+                    math: {
+                        visibility: {
+                            query: visibility,
+                            boost: 3,
+                            operator: "AND"
+                        }
                     }
-                }
-            });
+                });
+            }
 
             let body: ISearchBodyInterface<IShouldQuery>= {
-                size: size,
-                from: from,
+                size,
+                from,
                 query: {
                     bool: { should }
                 }
