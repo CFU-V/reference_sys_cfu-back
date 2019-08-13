@@ -87,7 +87,7 @@ export class SearchService {
         try {
             const should = this.getShouldQuery(query.split("|"));
 
-            if (visibility) {
+            if (Boolean(visibility)) {
                 should.push({
                     match: {
                         visibility: {
