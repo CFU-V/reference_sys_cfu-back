@@ -23,7 +23,8 @@ module.exports = {
       fuzziness: 2
     },
     {
-      name: "createdAt"
+      name: "createdAt",
+      boost: 2,
     }
   ],
   stopWords: [

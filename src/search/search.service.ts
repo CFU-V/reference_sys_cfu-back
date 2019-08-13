@@ -27,14 +27,13 @@ export class SearchService {
 
     private getShouldQuery(queries: Array<string>): Array<object> {
         let should = [];
-
         for (const query of queries) {
             for (const term of config.terms) {
                 const match = {};
                 match[term.name] = {
                     query,
-                    boost: term.boost,
-                    fuzziness: term.fuzziness
+                    boost: term.boost ? term.boost : 1,
+                    fuzziness: term.fuzziness ? term.fuzziness : 0,
                 };
 
                 should.push({ match })
@@ -90,9 +89,9 @@ export class SearchService {
 
             if (visibility) {
                 should.push({
-                    math: {
+                    match: {
                         visibility: {
-                            query: visibility,
+                            query: Boolean(visibility),
                             boost: 3,
                             operator: "AND"
                         }
