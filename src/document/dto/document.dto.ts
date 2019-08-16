@@ -37,3 +37,13 @@ export class UpdateDocumentDto {
   @ApiModelProperty({required: false})
   renew: boolean;
 }
+
+export class FormattedDocumentDto {
+  id: number;
+  link: string;
+  parentId: number;
+  level: number;
+  formatted: CheerioStatic;
+}
+
+

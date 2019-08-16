@@ -78,7 +78,7 @@ export class DocumentController {
                 fs.unlinkSync(file.path);
             }
 
-            return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(error);
+            return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ error });
         }
     }
 
@@ -108,7 +108,7 @@ export class DocumentController {
             const documents = await this.documentService.getListDocument(user, page, pageSize);
             return res.status(HttpStatus.OK).json(documents);
         } catch (error) {
-            return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(error);
+            return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ error });
         }
     }
 
@@ -136,25 +136,47 @@ export class DocumentController {
 
             return res.status(HttpStatus.OK).json(document);
         } catch (error) {
-            return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(error);
+            console.log(error)
+            return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ error });
         }
     }
 
     @Put('/')
+    @ApiConsumes('multipart/form-data')
+    @ApiImplicitFile({ name: 'file', required: false })
     @ApiResponse({ status: 200, description: 'Update document info', type: DocumentDto })
     @ApiOperation({title: 'Update document.'})
     @UseGuards(AuthGuard('staff'))
+    @UseInterceptors(FileInterceptor('file',
+        {
+            storage: diskStorage({
+                destination: process.env.DOCUMENT_STORAGE,
+                filename: (req, file, cb) => {
+                    const randomName = Utils.getRandomFileName();
+                    return cb(null, `${randomName}${extname(file.originalname)}`);
+                },
+            }),
+            fileFilter: (req, file, cb) => {
+                const ext = path.extname(file.originalname);
+                if (ext !== '.docx') {
+                    return cb(new Error('Only docx are allowed'), false);
+                }
+                cb(null, true);
+            },
+        },
+    ))
     async putDocument(
       @Res() res,
       @Request() req,
       @Body() documentInfo: UpdateDocumentDto,
+      @UploadedFile() file,
     ) {
         try {
-            const document = await this.documentService.updateDocument(req.user.id, documentInfo);
+            const document = await this.documentService.updateDocument(file ? file.path : null, req.user.id, documentInfo);
 
             return res.status(HttpStatus.OK).json(document);
         } catch (error) {
-            return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(error);
+            res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ error });
         }
     }
 
@@ -171,7 +193,7 @@ export class DocumentController {
             await this.documentService.deleteDocument(id);
             return res.status(HttpStatus.OK).json({success: true});
         } catch (error) {
-            return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(error);
+            return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ error });
         }
     }
 }

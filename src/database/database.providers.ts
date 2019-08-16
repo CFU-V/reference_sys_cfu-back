@@ -4,6 +4,7 @@ import { Dialect } from 'sequelize';
 import { User } from '../user/entities/user.entity';
 import { Role } from '../user/entities/role.entity';
 import { Document } from '../document/entities/document.entity';
+import { Category } from "../document/entities/category.entity";
 /**
  * Load config
  */
@@ -21,7 +22,7 @@ export const databaseProviders = [
               process.env.DB_PASSWORD,
               {dialect, host},
             );
-            sequelize.addModels([User, Role, Document]);
+            sequelize.addModels([User, Role, Document, Category]);
             await sequelize.sync();
             return sequelize;
         },
