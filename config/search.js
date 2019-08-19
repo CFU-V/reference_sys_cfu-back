@@ -9,7 +9,19 @@ module.exports = {
       type: "string"
     },
     {
+      name: "title.keyword",
+      boost: 2,
+      fuzziness: 1,
+      type: "string"
+    },
+    {
       name: "info",
+      boost: 2,
+      fuzziness: 1,
+      type: "string"
+    },
+    {
+      name: "info.keyword",
       boost: 2,
       fuzziness: 1,
       type: "string"
@@ -21,13 +33,19 @@ module.exports = {
       type: "string"
     },
     {
-      name: "category.keyword",
+      name: "text.keyword",
       boost: 2,
       fuzziness: 1,
       type: "string"
     },
     {
       name: "category",
+      boost: 2,
+      fuzziness: 1,
+      type: "string"
+    },
+    {
+      name: "category.keyword",
       boost: 2,
       fuzziness: 1,
       type: "string"
