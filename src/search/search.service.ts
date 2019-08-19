@@ -21,126 +21,168 @@ export class SearchService {
         try {
             return await esClient.search({index, body});
         } catch (error) {
-            throw error
+            throw error;
         }
     };
 
     private getShouldQuery(queries: Array<string>): Array<object> {
-        let should = [];
-        for (const query of queries) {
-            for (const term of config.terms) {
-                const match = {};
-                if (term.type === 'string') {
-                    match[term.name] = {
-                        query,
-                        boost: term.boost ? term.boost : 1,
-                        fuzziness: term.fuzziness ? term.fuzziness : 0,
-                    };
-                } else {
-                    match[term.name] = {
-                        query
-                    };
+        try {
+            const should = [];
+
+            for (const query of queries) {
+                for (const term of config.terms) {
+                    const match = {};
+                    if (term.type === 'string') {
+                        match[term.name] = {
+                            query,
+                            boost: term.boost ? term.boost : 1,
+                            fuzziness: term.fuzziness ? term.fuzziness : 0,
+                        };
+                    } else {
+                        match[term.name] = { query };
+                    }
+
+                    should.push({ match });
                 }
-
-                should.push({ match })
             }
-        }
 
-        return should
+            return should;
+        } catch (error) {
+            console.log(error);
+            return error;
+        }
     };
 
     private getMustQuery(fieldsQuery: Array<IFieldQuery>): Array<object> {
-        let must = [];
+        try {
+            const must = [];
 
-        for (const fieldQuery of fieldsQuery) {
-            const match = {};
-            const configuration = config.terms.find((el) => {
-                return el.name === fieldQuery.field
-            });
+            for (const fieldQuery of fieldsQuery) {
+                const match = {};
+                const term = {};
+                const configuration = config.terms.find((el) => {
+                    return el.name === fieldQuery.field
+                });
 
-            if (configuration) {
-                if (configuration.type === 'string') {
-                    match[fieldQuery.field] = {
-                        query: fieldQuery.query,
-                        boost: configuration.boost ? configuration.boost : 1,
-                        fuzziness: configuration.fuzziness ? configuration.fuzziness : 0,
-                    };
-                } else {
-                    match[fieldQuery.field] = {
-                        query: fieldQuery.query,
-                    };
+                if (configuration) {
+                    if (configuration.type === 'string') {
+                        match[fieldQuery.field] = {
+                            query: fieldQuery.query,
+                            boost: configuration.boost ? configuration.boost : 1,
+                            fuzziness: configuration.fuzziness ? configuration.fuzziness : 0,
+                        };
+                    } else {
+                        match[fieldQuery.field] = { query: fieldQuery.query };
+                    }
+                    must.push({ match });
                 }
-
-                must.push({ match })
             }
-        }
 
-        return must;
+            return must;
+        } catch (error) {
+            console.log(error);
+            return error;
+        }
     };
 
-    async searchAllData() {
+    async searchAllData(visibility: boolean = true) {
         try {
-            let body = {
+            const must = [];
+
+            if (visibility) {
+                must.push({
+                    term: {
+                        visibility: {
+                            value: true,
+                        },
+                    },
+                });
+            }
+
+            const body = {
                 size: 20,
                 from: 0,
-                query: {
-                    match_all: {}
-                }
+                query: { bool: { must } },
             };
 
             const results = await this.search(ALL_INDEX, body);
-            return results.body.hits.hits
+            return results.body.hits.hits;
         } catch (error) {
             return error;
         }
     }
 
-    async searchData(query: string, from: number = 0, size: number = 10, content: string = ALL_INDEX, visibility: boolean = true): Promise<Array<object>> {
+    async searchData(
+        query: string,
+        from: number = 0,
+        size: number = 10,
+        content: string = ALL_INDEX,
+        visibility: boolean = true,
+    ): Promise<Array<object>> {
         try {
-            const should = this.getShouldQuery(query.split("|"));
+            const should = this.getShouldQuery(query.split('|'));
+            const must = [];
+            must.push({ bool: { should } });
 
             if (visibility) {
-                should.push({
-                    match: {
+                must.push({
+                    term: {
                         visibility: {
-                            query: visibility,
-                            boost: 3,
-                            operator: "AND"
-                        }
-                    }
+                            value: true,
+                        },
+                    },
                 });
             }
 
-            let body: ISearchBodyInterface<IShouldQuery>= {
+            const body: ISearchBodyInterface<IMustQuery> = {
                 size,
                 from,
-                query: {
-                    bool: { should }
-                }
+                query: { bool: { must } },
             };
-            let results: ISearchResponseInterface<IndexedDocumentDto> = await this.search(content, body);
+
+            const results: ISearchResponseInterface<IndexedDocumentDto> = await this.search(content, body);
             console.log(`found ${results.body.hits.total.value} items in ${results.body.took}ms`);
-            return results.body.hits.hits
+            return results.body.hits.hits;
         } catch (error) {
-            return error
+            console.log(error);
+            return error;
         }
     }
 
-    async searchByFields(fieldsQuery: Array<IFieldQuery>, from: number = 0, size: number = 10, content: string = ALL_INDEX): Promise<Array<object>> {
+    async searchByFields(
+        fieldsQuery: Array<IFieldQuery>,
+        from: number = 0,
+        size: number = 10,
+        content: string = ALL_INDEX,
+        visibility: boolean = true,
+    ): Promise<Array<object>> {
         try {
             const must = await this.getMustQuery(fieldsQuery);
-            let body: ISearchBodyInterface<IMustQuery> = {
-                size: size,
-                from: from,
+
+            if (visibility) {
+                must.push({
+                    term: {
+                        visibility: {
+                            value: true,
+                        },
+                    },
+                });
+            }
+
+            const body: ISearchBodyInterface<IMustQuery> = {
+                size,
+                from,
                 query: {
-                    bool: { must }
-                }
+                    bool: { must },
+                },
             };
-            let results: ISearchResponseInterface<IndexedDocumentDto> = await this.search(content, body);
+
+            const results: ISearchResponseInterface<IndexedDocumentDto> = await this.search(content, body);
             console.log(`found ${results.body.hits.total.value} items in ${results.body.took}ms`);
-            return results.body.hits.hits
+            return results.body.hits.hits;
         } catch (error) {
-            return error
+            console.log(error);
+            return error;
         }
     }
 }

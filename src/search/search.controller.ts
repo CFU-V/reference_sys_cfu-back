@@ -70,7 +70,7 @@ export class SearchController {
     ) {
         try {
             const visibility = !user;
-            const result = search ? await this.searchService.searchData(search, from, to, content, visibility) : await this.searchService.searchAllData();
+            const result = search ? await this.searchService.searchData(search, from, to, content, visibility) : await this.searchService.searchAllData(visibility);
             return res.status(HttpStatus.OK).json(result);
         } catch (error) {
             return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(error);
@@ -80,13 +80,22 @@ export class SearchController {
     @Post('/')
     @ApiResponse({ status: 200, description: 'Result of search.'})
     @ApiOperation({title: 'Search content by fields.'})
+    @UseGuards(LiteAuthGuard)
     async searchByFields(
         @Res() res,
         @Request() req,
+        @User() user,
         @Body() searchByField: SearchByFieldDto,
     ) {
         try {
-            const result = await this.searchService.searchByFields(searchByField.fieldsQuery, searchByField.from, searchByField.to, searchByField.content);
+            const visibility = !user;
+            const result = await this.searchService.searchByFields(
+                searchByField.fieldsQuery,
+                searchByField.from,
+                searchByField.to,
+                searchByField.content,
+                visibility,
+            );
             return res.status(HttpStatus.OK).json(result);
         } catch (error) {
             return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(error);

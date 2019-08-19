@@ -1,5 +1,5 @@
 export interface IShouldQuery {
     bool: {
-        should: any
+        must: any,
     }
 }

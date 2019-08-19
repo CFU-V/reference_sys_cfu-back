@@ -5,25 +5,31 @@ module.exports = {
     {
       name: "title",
       boost: 2,
-      fuzziness: 2,
+      fuzziness: 1,
       type: "string"
     },
     {
       name: "info",
       boost: 2,
-      fuzziness: 2,
+      fuzziness: 1,
       type: "string"
     },
     {
       name: "text",
       boost: 2,
-      fuzziness: 2,
+      fuzziness: 1,
+      type: "string"
+    },
+    {
+      name: "category.keyword",
+      boost: 2,
+      fuzziness: 1,
       type: "string"
     },
     {
       name: "category",
       boost: 2,
-      fuzziness: 2,
+      fuzziness: 1,
       type: "string"
     },
     {

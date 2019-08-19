@@ -19,25 +19,25 @@ export class SearchIndexing implements OnModuleInit {
     }
 
     indexCronJob() {
-        return new CronJob('0 */12 * * *', this._do.bind(this)).start();
+       return new CronJob('0 */12 * * *', this._do.bind(this)).start();
     }
 
     async _do() {
         try {
             console.log('Start indexing ...');
-            let data = {
+            const data = {
                 documents: [],
             };
 
-            let documents = await this.documentRepository.findAll({
+            const documents = await this.documentRepository.findAll({
                 where: { parentId: null },
                 include: [{model: Category, as: 'category', attributes: ['title']}]
             });
 
-            for (let document of documents) {
+            for (const document of documents) {
                 const documentParser = new DocumentParser(this.documentRepository, document);
                 document.setDataValue('text', await documentParser.extract());
-                let item = await Map.documents(document.get({ plain: true }));
+                const item = await Map.documents(document.get({ plain: true }));
                 data.documents.push(item);
             }
 
@@ -49,7 +49,7 @@ export class SearchIndexing implements OnModuleInit {
 
     async bulkIndex(index, data) {
         try {
-            let bulkBody = data.flatMap(item => [{ index: { _index: index, _id: item.id } }, item]);
+            const bulkBody = data.flatMap(item => [{ index: { _index: index, _id: item.id } }, item]);
 
             const { body: bulkResponse } = await esClient.bulk({ body: bulkBody, refresh: true });
 
@@ -77,14 +77,14 @@ export class SearchIndexing implements OnModuleInit {
         } catch (error) {
             console.log(error)
         }
-    };
+    }
 
     async update(index, item) {
         try {
-            let updateBody = { doc : item };
+            const updateBody = { doc : item };
 
             const { body: updateResponse } = await esClient.update({
-                index: index,
+                index,
                 id: item.id,
                 body: updateBody,
                 refresh: true
