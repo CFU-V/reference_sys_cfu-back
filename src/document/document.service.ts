@@ -66,7 +66,6 @@ export class DocumentService {
             const documentParser = new DocumentParser();
             resultDocument = await documentParser.format(await buildDocumentTree(documents, id));
         }
-        console.log(resultDocument.formatted.xml())
         return resultDocument.formatted.xml();
     }
 

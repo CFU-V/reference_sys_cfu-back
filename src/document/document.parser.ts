@@ -4,10 +4,10 @@ import * as convert from "xml2js";
 import { Document } from "./entities/document.entity";
 import BookmarkData from './data/bookmark.data';
 import {
-    BOOKMARK_END_SELECTOR, BOOKMARK_ID_SELECTOR,
+    BOOKMARK_END_SELECTOR, BOOKMARK_END_SELECTOR_TEXT, BOOKMARK_ID_SELECTOR_TEXT,
     BOOKMARK_NAME_PATTERN,
-    BOOKMARK_NAME_SELECTOR, BOOKMARK_R_SELECTOR, BOOKMARK_START_SELECTOR,
-    BOOKMARK_TEXT_SELECTOR, DOCX_TPM_FOLDER_PATH, DOCX_XML_PATH
+    BOOKMARK_NAME_SELECTOR_TEXT, BOOKMARK_R_SELECTOR_TEXT, BOOKMARK_START_SELECTOR,
+    BOOKMARK_TEXT_SELECTOR, DOCX_TPM_FOLDER_PATH, DOCX_XML_PATH,
 } from '../common/constants';
 import * as path from "path";
 import { DocumentRecursiveDto, DocumentTreeDto } from "./dto/document.tree.dto";
@@ -60,56 +60,108 @@ export default class DocumentParser {
     }
 
     private async setMainBookmarks(formattedDocument: CheerioStatic, bookmarks: Array<BookmarkData>): Promise<CheerioStatic> {
-        await formattedDocument(BOOKMARK_START_SELECTOR).each(async (i, el) => {
-            if (bookmarks[el.attribs[BOOKMARK_NAME_SELECTOR]]) {
-                //let node = await this.findNode(formattedDocument, el);
-                //if (node) {
-                    formattedDocument(el).replaceWith(bookmarks[el.attribs[BOOKMARK_NAME_SELECTOR]].text);
-                //}
-            }
+        const bookmarkElements: Array<CheerioElement> = [];
+
+        formattedDocument(BOOKMARK_START_SELECTOR).each(async (i, el) => {
+            bookmarkElements.push(el);
         });
+
+        for (const el of bookmarkElements) {
+            if (bookmarks[el.attribs[BOOKMARK_NAME_SELECTOR_TEXT]]) {
+                const replacedPart = await this.getTextRec(formattedDocument, el);
+
+                if (replacedPart) {
+                    const xml = formattedDocument.xml();
+                    formattedDocument = cheerio.load(
+                        xml.replace(replacedPart, bookmarks[el.attribs[BOOKMARK_NAME_SELECTOR_TEXT]].text),
+                        cheerioOptions,
+                    );
+                }
+            }
+        }
 
         return formattedDocument;
     }
 
     private async getChildBookmarks(document: FormattedDocumentDto): Promise<Array<BookmarkData>> {
         const bookmarks: Array<BookmarkData> = [];
+        const bookmarkElements: Array<CheerioElement> = [];
         const xml = document.formatted ? document.formatted.xml() : await this.extractDocument(document.link);
         const $ = cheerio.load(xml, cheerioOptions);
 
-        await $(BOOKMARK_START_SELECTOR).each(async (i, el) => {
-            if (el.attribs[BOOKMARK_NAME_SELECTOR].match(new RegExp(BOOKMARK_NAME_PATTERN))) {
-                let text = await this.getText($, el);
+        $(BOOKMARK_START_SELECTOR).each(async (i, el) => {
+            bookmarkElements.push(el);
+        });
+
+        for (const el of bookmarkElements) {
+            if (el.attribs[BOOKMARK_NAME_SELECTOR_TEXT].match(new RegExp(BOOKMARK_NAME_PATTERN))) {
+                const text = await this.getTextRec($, el);
 
                 if (text) {
-                    if (!bookmarks[el.attribs[BOOKMARK_NAME_SELECTOR]]) {
-                        bookmarks[el.attribs[BOOKMARK_NAME_SELECTOR]] = {
-                            name: el.attribs[BOOKMARK_NAME_SELECTOR],
-                            text
+                    if (!bookmarks[el.attribs[BOOKMARK_NAME_SELECTOR_TEXT]]) {
+                        bookmarks[el.attribs[BOOKMARK_NAME_SELECTOR_TEXT]] = {
+                            name: el.attribs[BOOKMARK_NAME_SELECTOR_TEXT],
+                            text,
                         };
                     }
                 }
             }
-        });
+        }
+
         return bookmarks;
     }
 
-    private async getText($: CheerioStatic, node: CheerioElement): Promise<string> {
-        const id = node.attribs[BOOKMARK_ID_SELECTOR];
+    // private async getText($: CheerioStatic, node: CheerioElement): Promise<string> {
+    //     const id = node.attribs[BOOKMARK_ID_SELECTOR_TEXT];
+    //     let text = '';
+    //
+    //     while (node.tagName !== BOOKMARK_END_SELECTOR && node.attribs[BOOKMARK_ID_SELECTOR_TEXT] !== id) {
+    //         if (node.next) {
+    //             node = node.next;
+    //             if (node.tagName === 'w:p') {
+    //
+    //             }
+    //             if (node.tagName === BOOKMARK_R_SELECTOR_TEXT) {
+    //                 text += $(node).toString();
+    //             }
+    //         } else {
+    //             node = node.parent;
+    //             node = node.next;
+    //         }
+    //     }
+    //
+    //     return text;
+    // }
+
+    private async getTextRec($: CheerioStatic, node: CheerioElement, id?: string): Promise<string> {
+        id = id ? id : node.attribs[BOOKMARK_ID_SELECTOR_TEXT];
         let text = '';
 
-        while (node.tagName !== BOOKMARK_END_SELECTOR && node.attribs[BOOKMARK_ID_SELECTOR] !== id) {
+        if (node.tagName !== BOOKMARK_END_SELECTOR || node.attribs[BOOKMARK_ID_SELECTOR_TEXT] !== id) {
             if (node.next) {
                 node = node.next;
-                if (node.tagName === 'w:p') {
-                    
-                }
-                if (node.tagName === BOOKMARK_R_SELECTOR) {
+                const endIndex = $(node).toString().indexOf(`<${BOOKMARK_END_SELECTOR_TEXT} ${BOOKMARK_ID_SELECTOR_TEXT}=\"${id}\"`);
+                if (endIndex !== -1) {
+                    text += $(node).toString().substring(0, endIndex);
+                } else {
                     text += $(node).toString();
+                    text += await this.getTextRec($, node, id);
                 }
             } else {
                 node = node.parent;
-                node = node.next;
+                if (text.indexOf(`</${node.tagName}>`) === -1) {
+                    text += `</${node.tagName}>`;
+                }
+                if (node.next) {
+                    text += await this.getTextRec($, node, id);
+                } else {
+                    const endIndex = $(node).toString().indexOf(`<${BOOKMARK_END_SELECTOR_TEXT} ${BOOKMARK_ID_SELECTOR_TEXT}=\"${id}\"`);
+                    if (endIndex !== -1) {
+                        text += $(node).toString().substring(0, endIndex);
+                    } else {
+                        text += $(node).toString();
+                    }
+                }
             }
         }
 
