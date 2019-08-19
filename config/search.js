@@ -5,26 +5,30 @@ module.exports = {
     {
       name: "title",
       boost: 2,
-      fuzziness: 2
+      fuzziness: 2,
+      type: "string"
     },
     {
       name: "info",
       boost: 2,
-      fuzziness: 2
+      fuzziness: 2,
+      type: "string"
     },
     {
       name: "text",
       boost: 2,
-      fuzziness: 2
+      fuzziness: 2,
+      type: "string"
     },
     {
       name: "category",
       boost: 2,
-      fuzziness: 2
+      fuzziness: 2,
+      type: "string"
     },
     {
       name: "createdAt",
-      boost: 2,
+      type: "date"
     }
   ],
   stopWords: [

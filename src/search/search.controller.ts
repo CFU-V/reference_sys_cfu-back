@@ -14,13 +14,18 @@ import {
     UploadedFile,
     UseInterceptors,
 } from '@nestjs/common';
+import { AuthGuard } from '@nestjs/passport';
 import { ApiUseTags, ApiBearerAuth, ApiConsumes, ApiImplicitFile, ApiResponse, ApiOperation, ApiImplicitQuery} from '@nestjs/swagger';
 import { SearchService } from "./search.service";
 import {DocumentDto} from "../document/dto/document.dto";
 import {SearchByFieldDto} from "./dto/search.by.field.dto";
+import { LiteAuthGuard } from "../auth/guards/lite.guard";
+import { User } from "../user/decorators/user.decorator";
+import {UserDto} from "../user/dto/user.dto";
 
 @ApiUseTags('search')
 @Controller('search')
+@ApiBearerAuth()
 export class SearchController {
     constructor(
         private searchService: SearchService,
@@ -53,16 +58,18 @@ export class SearchController {
         required: false,
         type: String,
     })
+    @UseGuards(LiteAuthGuard)
     async search(
         @Res() res,
         @Request() req,
+        @User() user,
         @Query('search') search: string,
-        @Query('visibility') visibility: boolean,
         @Query('from') from: number,
         @Query('to') to: number,
         @Query('content') content: string,
     ) {
         try {
+            const visibility = !user;
             const result = search ? await this.searchService.searchData(search, from, to, content, visibility) : await this.searchService.searchAllData();
             return res.status(HttpStatus.OK).json(result);
         } catch (error) {

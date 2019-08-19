@@ -30,11 +30,17 @@ export class SearchService {
         for (const query of queries) {
             for (const term of config.terms) {
                 const match = {};
-                match[term.name] = {
-                    query,
-                    boost: term.boost ? term.boost : 1,
-                    fuzziness: term.fuzziness ? term.fuzziness : 0,
-                };
+                if (term.type === 'string') {
+                    match[term.name] = {
+                        query,
+                        boost: term.boost ? term.boost : 1,
+                        fuzziness: term.fuzziness ? term.fuzziness : 0,
+                    };
+                } else {
+                    match[term.name] = {
+                        query
+                    };
+                }
 
                 should.push({ match })
             }
@@ -53,11 +59,17 @@ export class SearchService {
             });
 
             if (configuration) {
-                match[fieldQuery.field] = {
-                    query: fieldQuery.query,
-                    boost: configuration.boost,
-                    fuzziness: configuration.fuzziness,
-                };
+                if (configuration.type === 'string') {
+                    match[fieldQuery.field] = {
+                        query: fieldQuery.query,
+                        boost: configuration.boost ? configuration.boost : 1,
+                        fuzziness: configuration.fuzziness ? configuration.fuzziness : 0,
+                    };
+                } else {
+                    match[fieldQuery.field] = {
+                        query: fieldQuery.query,
+                    };
+                }
 
                 must.push({ match })
             }
@@ -87,11 +99,11 @@ export class SearchService {
         try {
             const should = this.getShouldQuery(query.split("|"));
 
-            if (Boolean(visibility)) {
+            if (visibility) {
                 should.push({
                     match: {
                         visibility: {
-                            query: Boolean(visibility),
+                            query: visibility,
                             boost: 3,
                             operator: "AND"
                         }

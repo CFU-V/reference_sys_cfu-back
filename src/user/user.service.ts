@@ -45,19 +45,14 @@ export class UserService {
         }
     }
 
-    async findByPayload(payload: PayloadDTO, additionalRole?: string) {
-        let roleWhere = {};
+    async findByPayload(payload: PayloadDTO, additionalRoles?: Array<string>) {
+        const or = [{name: payload.role }];
 
-        if (additionalRole) {
-            roleWhere = {
-                [Op.or]: [
-                    {name: payload.role },
-                    {name: additionalRole},
-                ],
-            };
-        } else {
-            roleWhere = { name: payload.role };
+        for (const addRole of additionalRoles) {
+            or.push({name: addRole})
         }
+
+        const roleWhere = { [Op.or]: or };
 
         return await this.userRepository.findOne({
             where: {
