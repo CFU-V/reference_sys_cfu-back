@@ -5,6 +5,9 @@ import {Inject, Injectable, OnModuleInit} from "@nestjs/common";
 import { Document } from "../document/entities/document.entity";
 import { CronJob } from "cron";
 import { Category } from "../document/entities/category.entity";
+import {DocumentRecursiveDto} from "../document/dto/document.tree.dto";
+import {QueryTypes} from "sequelize";
+import {buildDocumentTree} from "../core/TreeBuilder";
 const { Client } = require('@elastic/elasticsearch');
 const esClient = new Client({ node: process.env.ELASTIC_URI });
 
@@ -35,8 +38,18 @@ export class SearchIndexing implements OnModuleInit {
             });
 
             for (const document of documents) {
-                const documentParser = new DocumentParser(this.documentRepository, document);
-                document.setDataValue('text', await documentParser.extract());
+                let documents: Array<DocumentRecursiveDto> = await this.documentRepository.sequelize.query(
+                    'WITH RECURSIVE sub_documents(id, link, "parentId", level) AS (' +
+                    `SELECT id, link, "parentId", 1 FROM documents WHERE id = :nodeId ` +
+                    'UNION ALL ' +
+                    'SELECT d.id, d.link, d."parentId", level+1 ' +
+                    'FROM documents d, sub_documents sd ' +
+                    'WHERE d."parentId" = sd.id) ' +
+                    'SELECT id, link, "parentId", level FROM sub_documents ORDER BY level ASC, id ASC;',
+                    {replacements: { nodeId: document.id }, type: QueryTypes.SELECT, mapToModel: true });
+
+                const documentParser = new DocumentParser();
+                document.setDataValue('text', await documentParser.extract(document.link, await buildDocumentTree(documents, document.id)));
                 const item = await Map.documents(document.get({ plain: true }));
                 data.documents.push(item);
             }

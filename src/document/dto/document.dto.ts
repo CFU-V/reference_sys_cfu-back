@@ -74,3 +74,12 @@ export class IndexedDocumentDto {
   createdAt: string;
   updatedAt: string;
 }
+
+export class FormattedDocumentDto {
+  id: number;
+  link: string;
+  parentId: number;
+  level: number;
+  formatted: CheerioStatic;
+}
+

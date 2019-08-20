@@ -18,6 +18,9 @@ import { SearchIndexing } from "../../search/search.indexing";
 import {DOCUMENT_INDEX} from "../../common/constants";
 import {Map} from "../../search/search.map";
 import DocumentParser from "../document.parser";
+import {DocumentRecursiveDto} from "../dto/document.tree.dto";
+import {QueryTypes} from "sequelize";
+import { buildDocumentTree } from "../../core/TreeBuilder";
 
 @Table({
     timestamps: true,
@@ -138,8 +141,18 @@ export class Document extends Model<Document> {
                 include: [{model: Category, as: 'category', attributes: ['title']}]
             });
 
-            const documentParser = new DocumentParser(Document, doc);
-            doc.setDataValue('text', await documentParser.extract());
+            let documents: Array<DocumentRecursiveDto> = await this.sequelize.query(
+                'WITH RECURSIVE sub_documents(id, link, "parentId", level) AS (' +
+                `SELECT id, link, "parentId", 1 FROM documents WHERE id = :nodeId ` +
+                'UNION ALL ' +
+                'SELECT d.id, d.link, d."parentId", level+1 ' +
+                'FROM documents d, sub_documents sd ' +
+                'WHERE d."parentId" = sd.id) ' +
+                'SELECT id, link, "parentId", level FROM sub_documents ORDER BY level ASC, id ASC;',
+                {replacements: { nodeId: id }, type: QueryTypes.SELECT, mapToModel: true });
+
+            const documentParser = new DocumentParser();
+            doc.setDataValue('text', await documentParser.extract(doc.link, await buildDocumentTree(documents, id)));
 
             return await Map.documents(doc.get({ plain: true }));
         } catch (error) {
