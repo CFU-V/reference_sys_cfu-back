@@ -3,18 +3,18 @@ import { ApiModelProperty } from '@nestjs/swagger';
 export class UserDto {
   @ApiModelProperty()
   id: number;
-  @ApiModelProperty()
+  @ApiModelProperty({required: false})
   password: string;
-  @ApiModelProperty()
+  @ApiModelProperty({required: false})
   roleId: number;
-  @ApiModelProperty()
+  @ApiModelProperty({required: false})
   phone: string;
-  @ApiModelProperty()
+  @ApiModelProperty({required: false})
   lastName: string;
-  @ApiModelProperty()
+  @ApiModelProperty({required: false})
   firstName: string;
-  @ApiModelProperty()
+  @ApiModelProperty({required: false})
   surName: string;
-  @ApiModelProperty()
+  @ApiModelProperty({required: false})
   position: string;
 }
