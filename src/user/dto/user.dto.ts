@@ -1,29 +1,20 @@
 import { ApiModelProperty } from '@nestjs/swagger';
-import { IsNumber, IsString } from 'class-validator';
 
 export class UserDto {
   @ApiModelProperty()
-  @IsNumber()
   id: number;
-  @ApiModelProperty()
-  @IsString()
+  @ApiModelProperty({required: false})
   password: string;
-  @ApiModelProperty()
-  @IsNumber()
+  @ApiModelProperty({required: false})
   roleId: number;
-  @ApiModelProperty()
-  @IsString()
+  @ApiModelProperty({required: false})
   phone: string;
-  @ApiModelProperty()
-  @IsString()
+  @ApiModelProperty({required: false})
   lastName: string;
-  @ApiModelProperty()
-  @IsString()
+  @ApiModelProperty({required: false})
   firstName: string;
-  @ApiModelProperty()
-  @IsString()
+  @ApiModelProperty({required: false})
   surName: string;
-  @ApiModelProperty()
-  @IsString()
+  @ApiModelProperty({required: false})
   position: string;
 }
