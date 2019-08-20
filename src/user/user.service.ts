@@ -7,9 +7,11 @@ import { Role } from './entities/role.entity';
 import { RegistrationDTO } from '../auth/dto/registration.dto';
 import { EntitiesWithPaging } from '../common/paging/paging.entities';
 import { PAGE, PAGE_SIZE } from '../common/paging/paging.constants';
-import { where } from 'sequelize';
+import { Op } from 'sequelize';
 import { UserDto } from './dto/user.dto';
 import { MeDto } from './dto/me.dto';
+import { Model, Sequelize } from "sequelize-typescript";
+import * as Fuse from 'fuse.js';
 
 @Injectable()
 export class UserService {
@@ -74,6 +76,34 @@ export class UserService {
             result.rows[i] = await this.sanitizeUser(user);
         }
         return new EntitiesWithPaging(result.rows, result.count, page, pageSize);
+    }
+
+    async findUsers(s: string, page?: number, pageSize?: number) {
+        try {
+            page = page > 0 ? page : PAGE;
+            pageSize = pageSize > 0 ? pageSize : PAGE_SIZE;
+            const offset: number = pageSize * page;
+            const options = {
+                limit: pageSize,
+                offset,
+                include: [{model: Role, as: 'role'}],
+            };
+
+            const find = await this.userRepository.findAndCountAll(options);
+            for (const [i, user] of find.rows.entries()) {
+                find.rows[i] = await this.sanitizeUser(user);
+            }
+            const fuseOptions: Fuse.FuseOptions<UserDto> = {
+                keys: ['lastName', 'firstName', 'surName'],
+            };
+            const fuse = new Fuse(find.rows, fuseOptions);
+            const result = fuse.search(s);
+
+            return new EntitiesWithPaging(result, find.count, page, pageSize);
+        } catch (error) {
+            console.log(error);
+            return error;
+        }
     }
 
     async putUser(user: UserDto) {

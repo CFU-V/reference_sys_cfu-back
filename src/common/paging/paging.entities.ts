@@ -2,20 +2,20 @@ import { Pagination } from './paging.interface';
 import { PAGE_SIZE, PAGE } from './paging.constants';
 import { Model } from 'sequelize-typescript';
 
-export class EntitiesWithPaging implements Pagination{
-    private _entities: Array<Model> = null;
+export class EntitiesWithPaging implements Pagination {
+    private _entities: Array<any> = null;
     private _currentPage: number;
     private _pageSize?: number;
     private _totalItems?: number;
 
-    constructor(entities: Array<Model>, count: number, page: number, pageSize: number ) {
+    constructor(entities: Array<any>, count: number, page: number, pageSize: number ) {
         this._entities = entities;
         this._pageSize = pageSize > 0 ? pageSize : PAGE_SIZE;
         this._currentPage = page > 0 ? page : PAGE;
         this._totalItems = count;
     }
 
-    public get entities(): Array<Model> {
+    public get entities(): Array<any> {
         return this.entities;
     }
 
