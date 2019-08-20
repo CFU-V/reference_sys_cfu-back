@@ -16,6 +16,7 @@ import * as Fuse from 'fuse.js';
 @Injectable()
 export class UserService {
     constructor(
+        @Inject('RoleRepository') private readonly roleRepository: typeof Role,
         @Inject('UserRepository') private readonly userRepository: typeof User,
     ) {}
 
@@ -49,8 +50,10 @@ export class UserService {
     async findByPayload(payload: PayloadDTO, additionalRoles?: Array<string>) {
         const or = [{name: payload.role }];
 
-        for (const addRole of additionalRoles) {
-            or.push({name: addRole})
+        if (additionalRoles) {
+            for (const addRole of additionalRoles) {
+                or.push({name: addRole});
+            }
         }
 
         const roleWhere = { [Op.or]: or };
@@ -101,7 +104,7 @@ export class UserService {
         return new EntitiesWithPaging(result.rows, result.count, page, pageSize);
     }
 
-    async findUsers(s: string, page?: number, pageSize?: number) {
+    async findUsers(s: string, roleId?: number, page?: number, pageSize?: number) {
         try {
             page = page > 0 ? page : PAGE;
             pageSize = pageSize > 0 ? pageSize : PAGE_SIZE;
@@ -110,6 +113,7 @@ export class UserService {
                 limit: pageSize,
                 offset,
                 include: [{model: Role, as: 'role'}],
+                where: roleId ? { roleId } : {},
             };
 
             const find = await this.userRepository.findAndCountAll(options);
@@ -123,6 +127,15 @@ export class UserService {
             const result = fuse.search(s);
 
             return new EntitiesWithPaging(result, find.count, page, pageSize);
+        } catch (error) {
+            console.log(error);
+            return error;
+        }
+    }
+
+    async getRolesList() {
+        try {
+            return this.roleRepository.findAll();
         } catch (error) {
             console.log(error);
             return error;

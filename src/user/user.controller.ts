@@ -74,14 +74,41 @@ export class UserController {
         required: false,
         type: Number,
     })
+    @ApiImplicitQuery({
+        name: 's',
+        description: 'Search query',
+        required: true,
+        type: String,
+    })
+    @ApiImplicitQuery({
+        name: 'roleId',
+        description: 'Id of user role',
+        required: false,
+        type: Number,
+    })
     async findUsers(
       @Res() res,
-      @Query('s') s : string,
+      @Query('s') s: string,
+      @Query('roleId') roleId: number,
       @Query('page') page: number,
       @Query('pageSize') pageSize: number,
     ) {
         try {
-            return res.status(HttpStatus.OK).json(await this.service.findUsers(s, page, pageSize));
+            return res.status(HttpStatus.OK).json(await this.service.findUsers(s, roleId, page, pageSize));
+        } catch (error) {
+            return res.status(HttpStatus.BAD_REQUEST).json(error);
+        }
+    }
+
+    @UseGuards(AuthGuard('admin'))
+    @Get('/roles')
+    @ApiResponse({ status: 200, description: 'List of user roles.' })
+    @ApiOperation({title: 'Get existing user roles.'})
+    async getRoles(
+      @Res() res,
+    ) {
+        try {
+            return res.status(HttpStatus.OK).json(await this.service.getRolesList());
         } catch (error) {
             return res.status(HttpStatus.BAD_REQUEST).json(error);
         }
