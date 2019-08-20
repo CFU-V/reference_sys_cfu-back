@@ -7,6 +7,7 @@ import { Role } from './entities/role.entity';
 import { RegistrationDTO } from '../auth/dto/registration.dto';
 import { EntitiesWithPaging } from '../common/paging/paging.entities';
 import { PAGE, PAGE_SIZE } from '../common/paging/paging.constants';
+import { verify } from 'jsonwebtoken';
 import { Op } from 'sequelize';
 import { UserDto } from './dto/user.dto';
 import { MeDto } from './dto/me.dto';
