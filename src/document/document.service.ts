@@ -5,7 +5,7 @@ import {PAGE, PAGE_SIZE} from '../common/paging/paging.constants';
 import {DocumentDto, FormattedDocumentDto, UpdateDocumentDto} from './dto/document.dto';
 import * as fs from 'fs';
 import DocumentParser from "./document.parser";
-import { QueryTypes } from "sequelize";
+import { Op, QueryTypes } from 'sequelize';
 import { buildDocumentTree } from "../core/TreeBuilder";
 import {DocumentRecursiveDto} from "./dto/document.tree.dto";
 
@@ -29,14 +29,24 @@ export class DocumentService {
         });
     }
 
-    async getListDocument(user: any, page?: number, pageSize?: number) {
+    async getListDocument(user: any, autocomplete?: string, title?: string, page?: number, pageSize?: number) {
         page = page > 0 ? page : PAGE;
         pageSize = pageSize > 0 ? pageSize : PAGE_SIZE;
         const offset: number = pageSize * page;
+        const where = {};
+
+        if (!user) {
+            where['visibility'] = true;
+        }
+
+        if (autocomplete === 'true') {
+            where['title'] = {[Op.iLike]: `%${title ? title : ''}%`} ;
+        }
+
         const options = {
             limit: pageSize,
             offset,
-            where: user ? {} : { visibility: true },
+            where,
         };
 
         const result = await this.documentRepository.findAndCountAll(options);
@@ -52,7 +62,7 @@ export class DocumentService {
         //let document = await this.documentRepository.findOne(options);
         let resultDocument: FormattedDocumentDto;
 
-        let documents: Array<DocumentRecursiveDto> = await this.documentRepository.sequelize.query(
+        const documents: Array<DocumentRecursiveDto> = await this.documentRepository.sequelize.query(
             'WITH RECURSIVE sub_documents(id, link, "parentId", level) AS (' +
             `SELECT id, link, "parentId", 1 FROM documents WHERE id = :nodeId ${user ? '' : 'AND visibility = :visibility'} ` +
             'UNION ALL ' +

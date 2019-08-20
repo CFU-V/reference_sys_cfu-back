@@ -97,15 +97,29 @@ export class DocumentController {
         required: false,
         type: Number,
     })
+    @ApiImplicitQuery({
+        name: 's',
+        description: 'Search query for autocomplete',
+        required: false,
+        type: String,
+    })
+    @ApiImplicitQuery({
+        name: 'autocomplete',
+        description: 'Is it autocomplete',
+        required: false,
+        type: Boolean,
+    })
     async getListDocument(
         @Res() res,
         @Request() req,
+        @Query('s') s: string,
+        @Query('autocomplete') autocomplete: string,
         @Query('page') page: number,
         @Query('pageSize') pageSize: number,
     ) {
         try {
             const user = await this.userService.verifyByToken(req.headers.authorization);
-            const documents = await this.documentService.getListDocument(user, page, pageSize);
+            const documents = await this.documentService.getListDocument(user, autocomplete, s, page, pageSize);
             return res.status(HttpStatus.OK).json(documents);
         } catch (error) {
             return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ error });
