@@ -45,7 +45,7 @@ export class UserController {
         required: false,
         type: Number,
     })
-    async getAllUsers(
+    async getUsers(
       @Res() res,
       @Query('id', new ValidateObjectId()) id: number,
       @Query('page') page: number,
@@ -53,6 +53,35 @@ export class UserController {
     ) {
         try {
             return res.status(HttpStatus.OK).json(await this.service.getUsers(id, page, pageSize));
+        } catch (error) {
+            return res.status(HttpStatus.BAD_REQUEST).json(error);
+        }
+    }
+
+    @UseGuards(AuthGuard('admin'))
+    @Get('/find')
+    @ApiResponse({ status: 200, description: 'User info or array of users.', type: GetUsersResponseDto })
+    @ApiOperation({title: 'Get users info.', description: 'Set id param 0, for getting all users'})
+    @ApiImplicitQuery({
+        name: 'page',
+        description: 'The number of pages',
+        required: false,
+        type: Number,
+    })
+    @ApiImplicitQuery({
+        name: 'pageSize',
+        description: 'The number of users in page',
+        required: false,
+        type: Number,
+    })
+    async findUsers(
+      @Res() res,
+      @Query('s') s : string,
+      @Query('page') page: number,
+      @Query('pageSize') pageSize: number,
+    ) {
+        try {
+            return res.status(HttpStatus.OK).json(await this.service.findUsers(s, page, pageSize));
         } catch (error) {
             return res.status(HttpStatus.BAD_REQUEST).json(error);
         }
