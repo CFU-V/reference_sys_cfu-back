@@ -44,6 +44,14 @@ export class IndexingDocumentDto {
   title: string;
   info: string;
   text: string;
+  active: boolean;
+  link: string;
+  consultant_link: string;
+  renew: boolean;
+  ownerId: number;
+  parentId: number;
+  categoryId: number;
+  updatedAt: Date;
   visibility: boolean;
   category: Category;
   createdAt: Date;
@@ -55,6 +63,14 @@ export class IndexedDocumentDto {
   info: string;
   text: string;
   category: string;
+  active: boolean;
+  link: string;
+  consultant_link: string;
+  renew: boolean;
+  ownerId: number;
+  parentId: number;
+  categoryId: number;
   visibility: boolean;
   createdAt: string;
+  updatedAt: string;
 }

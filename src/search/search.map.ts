@@ -13,7 +13,15 @@ export class Map {
             text: await Map.getWords(document.text),
             category: document.category.title,
             visibility: document.visibility,
+            active: document.active,
+            consultant_link: document.consultant_link,
+            renew: document.renew,
+            ownerId: document.ownerId,
+            parentId: document.parentId,
+            categoryId: document.categoryId,
+            link: document.link,
             createdAt: this.refCreatedAt(document.createdAt).toString(),
+            updatedAt: this.refCreatedAt(document.updatedAt).toString(),
         };
     }
 
