@@ -12,7 +12,7 @@ import {
 import * as path from "path";
 import { DocumentRecursiveDto, DocumentTreeDto } from "./dto/document.tree.dto";
 import { FormattedDocumentDto } from "./dto/document.dto";
-import textract from 'textract';
+import * as textract from 'textract';
 import fs from 'fs';
 import {QueryTypes} from "sequelize";
 import {buildDocumentTree} from "../core/TreeBuilder";
