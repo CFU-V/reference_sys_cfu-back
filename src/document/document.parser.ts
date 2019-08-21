@@ -13,7 +13,7 @@ import * as path from "path";
 import { DocumentRecursiveDto, DocumentTreeDto } from "./dto/document.tree.dto";
 import { FormattedDocumentDto } from "./dto/document.dto";
 import * as textract from 'textract';
-import fs from 'fs';
+import * as fs from 'fs';
 import {QueryTypes} from "sequelize";
 import {buildDocumentTree} from "../core/TreeBuilder";
 
@@ -193,7 +193,7 @@ export default class DocumentParser {
         await zip.writeZip(path.resolve(__dirname, `${DOCX_TPM_FOLDER_PATH}/${path.basename(document.link)}`));
     }
 
-    private getPathForTempDocument(docPath: string) : string {
+    private getPathForTempDocument(docPath: string): string {
         return path.resolve(__dirname, `${DOCX_TPM_FOLDER_PATH}/${path.basename(docPath)}`);
     }
 }
