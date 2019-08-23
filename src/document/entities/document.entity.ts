@@ -10,7 +10,7 @@ import {
     PrimaryKey,
     ForeignKey,
     AutoIncrement,
-    BelongsTo, BelongsToMany, BeforeUpdate, BeforeCreate, BeforeDestroy, AfterCreate,
+    BelongsTo, BelongsToMany, BeforeUpdate, BeforeCreate, BeforeDestroy, AfterCreate, AfterUpdate,
 } from 'sequelize-typescript';
 import { User } from '../../user/entities/user.entity';
 import { Category } from "./category.entity";
@@ -108,7 +108,7 @@ export class Document extends Model<Document> {
     @BelongsTo(() => Category)
     category: Category;
 
-    @BeforeUpdate
+    @AfterUpdate
     @AfterCreate
     static async _indexing(document: Document) {
         try {
@@ -121,6 +121,7 @@ export class Document extends Model<Document> {
             }
         } catch (error) {
             console.log(error);
+            throw error
         }
     }
 
@@ -153,10 +154,12 @@ export class Document extends Model<Document> {
 
             const documentParser = new DocumentParser();
             doc.setDataValue('text', await documentParser.extract(doc.link, await buildDocumentTree(documents, id)));
+            console.log("TYT  "+JSON.stringify(doc));
 
             return await Map.documents(doc.get({ plain: true }));
         } catch (error) {
             console.log(error);
+            throw error;
         }
     }
 }

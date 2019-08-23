@@ -1,13 +1,17 @@
-import {HttpException, HttpStatus, Inject, Injectable} from '@nestjs/common';
-import {Document} from './entities/document.entity';
-import {EntitiesWithPaging} from '../common/paging/paging.entities';
-import {PAGE, PAGE_SIZE} from '../common/paging/paging.constants';
-import {DocumentDto, FormattedDocumentDto, UpdateDocumentDto} from './dto/document.dto';
+import { HttpException, HttpStatus, Inject, Injectable } from '@nestjs/common';
+import { Document } from './entities/document.entity';
+import { EntitiesWithPaging } from '../common/paging/paging.entities';
+import { PAGE, PAGE_SIZE } from '../common/paging/paging.constants';
+import { DocumentDto, FormattedDocumentDto, UpdateDocumentDto } from './dto/document.dto';
 import * as fs from 'fs';
-import DocumentParser from "./document.parser";
-import { QueryTypes } from "sequelize";
-import { buildDocumentTree } from "../core/TreeBuilder";
-import {DocumentRecursiveDto} from "./dto/document.tree.dto";
+import DocumentParser from './document.parser';
+import { QueryTypes } from 'sequelize';
+import { buildDocumentTree } from '../core/TreeBuilder';
+import { DocumentRecursiveDto } from './dto/document.tree.dto';
+import Utils from '../core/Utils';
+import * as path from 'path';
+import { DOCX_TPM_FOLDER_PATH } from '../common/constants';
+import { ReadStream } from 'fs';
 
 @Injectable()
 export class DocumentService {
@@ -44,15 +48,10 @@ export class DocumentService {
         return new EntitiesWithPaging(result.rows, result.count, page, pageSize);
     }
 
-    async getDocument(id: number, user: any) {
-        // const options = {
-        //     where: user ? { id } : { id, visibility: true },
-        //     attributes: ['id', 'link'],
-        // };
-        //let document = await this.documentRepository.findOne(options);
+    async getDocument(id: number, user: any): Promise<string> {
         let resultDocument: FormattedDocumentDto;
 
-        let documents: Array<DocumentRecursiveDto> = await this.documentRepository.sequelize.query(
+        const documents: Array<DocumentRecursiveDto> = await this.documentRepository.sequelize.query(
             'WITH RECURSIVE sub_documents(id, link, "parentId", level) AS (' +
             `SELECT id, link, "parentId", 1 FROM documents WHERE id = :nodeId ${user ? '' : 'AND visibility = :visibility'} ` +
             'UNION ALL ' +
@@ -64,9 +63,13 @@ export class DocumentService {
 
         if (documents) {
             const documentParser = new DocumentParser();
-            resultDocument = await documentParser.format(await buildDocumentTree(documents, id));
+            resultDocument = await documentParser.formatLite(await buildDocumentTree(documents, id));
         }
-        return resultDocument.formatted.xml();
+        return resultDocument.resultedLink;
+    }
+
+    downloadDocument(docPath: string) {
+        return fs.createReadStream(docPath);
     }
 
     async updateDocument(filePath: string, ownerId: number, document: UpdateDocumentDto) {
@@ -74,8 +77,9 @@ export class DocumentService {
             const oldDoc = await this.documentRepository.findOne({ where: {id: document.id} });
             if (oldDoc) {
                 if (filePath) {
-                    fs.unlinkSync(oldDoc.link)
+                    Utils.deleteIfExist(oldDoc.link);
                 }
+
                 return await oldDoc.update({
                     title: document.title ? document.title : oldDoc.title,
                     ownerId,
@@ -105,7 +109,7 @@ export class DocumentService {
                 const deleted = await document.destroy({transaction: t});
 
                 t.commit();
-                fs.unlinkSync(document.link);
+                Utils.deleteIfExist(document.link);
                 return deleted;
             } catch (e) {
                 t.rollback();
