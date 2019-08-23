@@ -45,6 +45,18 @@ module.exports = {
       type: "string"
     },
     {
+      name: "active",
+      boost: 2,
+      fuzziness: 1,
+      type: "boolean"
+    },
+    {
+      name: "active.keyword",
+      boost: 2,
+      fuzziness: 1,
+      type: "boolean"
+    },
+    {
       name: "category.keyword",
       boost: 2,
       fuzziness: 1,
