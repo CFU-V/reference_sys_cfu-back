@@ -12,7 +12,7 @@ import {
     Request,
     UseGuards,
     UploadedFile,
-    UseInterceptors,
+    UseInterceptors, Header,
 } from '@nestjs/common';
 import { DocumentService } from './document.service';
 import { ApiUseTags, ApiBearerAuth, ApiConsumes, ApiImplicitFile, ApiResponse, ApiOperation, ApiImplicitQuery} from '@nestjs/swagger';
@@ -72,12 +72,7 @@ export class DocumentController {
 
             return res.status(HttpStatus.OK).json(document);
         } catch (error) {
-            const createdFile = fs.existsSync(file.path);
-
-            if (createdFile) {
-                fs.unlinkSync(file.path);
-            }
-
+            Utils.deleteIfExist(file.path);
             return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ error });
         }
     }
@@ -127,6 +122,7 @@ export class DocumentController {
     }
 
     @Get('/')
+    @Header('Content-type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document')
     @ApiResponse({ status: 200, description: '', type: DocumentDto })
     @ApiOperation({title: 'Get document.'})
     @ApiImplicitQuery({
@@ -142,15 +138,15 @@ export class DocumentController {
     ) {
         try {
             const user = await this.userService.verifyByToken(req.headers.authorization);
-            const document = await this.documentService.getDocument(id, user);
+            const documentLink = await this.documentService.getDocument(id, user);
 
-            if (!document) {
+            if (!documentLink) {
                 return res.status(HttpStatus.BAD_REQUEST).json({msg: 'Document doesn`t exist or permissions denied.'});
             }
 
-            return res.status(HttpStatus.OK).json(document);
+            return (await this.documentService.downloadDocument(documentLink)).pipe(res);
         } catch (error) {
-            console.log(error)
+            console.log(error);
             return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ error });
         }
     }
@@ -190,7 +186,7 @@ export class DocumentController {
 
             return res.status(HttpStatus.OK).json(document);
         } catch (error) {
-            res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ error });
+            return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ error });
         }
     }
 

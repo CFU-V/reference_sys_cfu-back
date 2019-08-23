@@ -81,5 +81,6 @@ export class FormattedDocumentDto {
   parentId: number;
   level: number;
   formatted: CheerioStatic;
+  resultedLink: string;
 }
 

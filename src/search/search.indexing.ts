@@ -62,6 +62,7 @@ export class SearchIndexing implements OnModuleInit {
 
     async bulkIndex(index, data) {
         try {
+            console.log(JSON.stringify(data))
             const bulkBody = data.flatMap(item => [{ index: { _index: index, _id: item.id } }, item]);
 
             const { body: bulkResponse } = await esClient.bulk({ body: bulkBody, refresh: true });
