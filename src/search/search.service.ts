@@ -31,18 +31,20 @@ export class SearchService {
 
             for (const query of queries) {
                 for (const term of config.terms) {
-                    const match = {};
-                    if (term.type === 'string') {
-                        match[term.name] = {
-                            query,
-                            boost: term.boost ? term.boost : 1,
-                            fuzziness: term.fuzziness ? term.fuzziness : 0,
-                        };
-                    } else {
-                        match[term.name] = { query };
+                    if (term.name.indexOf('.keyword') === -1) {
+                        const match = {};
+                        if (term.type === 'string') {
+                            match[term.name] = {
+                                query,
+                                boost: term.boost ? term.boost : 1,
+                                fuzziness: term.fuzziness ? term.fuzziness : 0,
+                            };
+                            should.push({ match });
+                        } else if (term.type !== 'boolean') {
+                            match[term.name] = { query };
+                            should.push({ match });
+                        }
                     }
-
-                    should.push({ match });
                 }
             }
 
@@ -51,7 +53,7 @@ export class SearchService {
             console.log(error);
             return error;
         }
-    };
+    }
 
     private getMustQuery(fieldsQuery: Array<IFieldQuery>): Array<object> {
         try {

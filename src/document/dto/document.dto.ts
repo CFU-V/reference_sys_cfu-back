@@ -63,10 +63,10 @@ export class IndexedDocumentDto {
   info: string;
   text: string;
   category: string;
-  active: boolean;
+  active: string;
   link: string;
   consultant_link: string;
-  renew: boolean;
+  renew: string;
   ownerId: number;
   parentId: number;
   categoryId: number;

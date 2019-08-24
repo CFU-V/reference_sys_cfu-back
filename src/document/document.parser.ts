@@ -196,8 +196,10 @@ export default class DocumentParser {
         if (node.tagName !== BOOKMARK_END_SELECTOR_TEXT || node.attribs[BOOKMARK_ID_SELECTOR_TEXT] !== id) {
             if (node.tagName === BOOKMARK_END_SELECTOR_TEXT) {
                 const tmp = $(`${BOOKMARK_START_SELECTOR}[${BOOKMARK_ID_SELECTOR}="${node.attribs[BOOKMARK_ID_SELECTOR_TEXT]}"]`);
-                if (tmp.attr(BOOKMARK_NAME_SELECTOR_TEXT).match(new RegExp(BOOKMARK_NAME_PATTERN))) {
-                    additionalBookmarks += $(node).toString();
+                if (tmp.attr()) {
+                    if (tmp.attr(BOOKMARK_NAME_SELECTOR_TEXT).match(new RegExp(BOOKMARK_NAME_PATTERN))) {
+                        additionalBookmarks += $(node).toString();
+                    }
                 }
             }
             if (node.next) {
