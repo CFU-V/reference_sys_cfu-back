@@ -1,16 +1,16 @@
 import { ApiModelProperty } from '@nestjs/swagger';
 
 export class MeDto {
-  @ApiModelProperty()
+  @ApiModelProperty({required: false})
   password: string;
-  @ApiModelProperty()
+  @ApiModelProperty({required: false})
   phone: string;
-  @ApiModelProperty()
+  @ApiModelProperty({required: false})
   lastName: string;
-  @ApiModelProperty()
+  @ApiModelProperty({required: false})
   firstName: string;
-  @ApiModelProperty()
+  @ApiModelProperty({required: false})
   surName: string;
-  @ApiModelProperty()
+  @ApiModelProperty({required: false})
   position: string;
 }

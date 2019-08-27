@@ -102,7 +102,7 @@ export class User extends Model<User> {
     @BeforeCreate
     static async hashPassword(user: User) {
         try {
-            if (user.password) {
+            if (user.password !== user.previous('password')) {
                 user.password = await bcrypt.hash(user.password, 10);
             }
         } catch (error) {

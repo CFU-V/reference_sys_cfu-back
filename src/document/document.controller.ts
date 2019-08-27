@@ -12,7 +12,7 @@ import {
     Request,
     UseGuards,
     UploadedFile,
-    UseInterceptors,
+    UseInterceptors, Header,
 } from '@nestjs/common';
 import { DocumentService } from './document.service';
 import { ApiUseTags, ApiBearerAuth, ApiConsumes, ApiImplicitFile, ApiResponse, ApiOperation, ApiImplicitQuery} from '@nestjs/swagger';
@@ -27,6 +27,9 @@ import { ValidateObjectId } from '../shared/pipes/validate-object-id.pipes';
 import * as path from 'path';
 import { verify } from 'jsonwebtoken';
 import { UserService } from '../user/user.service';
+import { DocumentPropertyDto } from './dto/document.property.dto';
+import { BodyDocumentPropertyDto } from './dto/document.body.property.dto';
+import logger from '../core/logger';
 
 @ApiUseTags('document')
 @ApiBearerAuth()
@@ -40,7 +43,7 @@ export class DocumentController {
     @Post('/')
     @UseGuards(AuthGuard('staff'))
     @ApiConsumes('multipart/form-data')
-    @ApiImplicitFile({ name: 'file', required: true })
+    @ApiImplicitFile({ name: 'file', required: false })
     @ApiResponse({ status: 200, description: 'Created document info', type: DocumentDto })
     @ApiOperation({title: 'Add new document.'})
     @UseInterceptors(FileInterceptor('file',
@@ -54,8 +57,8 @@ export class DocumentController {
         }),
         fileFilter: (req, file, cb) => {
             const ext = path.extname(file.originalname);
-            if (ext !== '.doc' && ext !== '.docx') {
-                return cb(new Error('Only doc/docx are allowed'), false);
+            if (ext !== '.docx') {
+                return cb(new Error('Only docx are allowed'), false);
             }
             cb(null, true);
         },
@@ -69,16 +72,11 @@ export class DocumentController {
     ) {
         try {
             const document = await this.documentService.addDocument(req.user.id, file.path, documentInfo);
-
-            return res.status(HttpStatus.OK).json(document);
+            res.status(HttpStatus.OK).json(document);
+            logger.info(`ADD_DOCUMENT, : {user_id: ${req.user.id} }, document: ${JSON.stringify(document)}`)
         } catch (error) {
-            const createdFile = fs.existsSync(file.path);
-
-            if (createdFile) {
-                fs.unlinkSync(file.path);
-            }
-
-            return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(error);
+            Utils.deleteIfExist(file.path);
+            return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ error });
         }
     }
 
@@ -97,22 +95,37 @@ export class DocumentController {
         required: false,
         type: Number,
     })
+    @ApiImplicitQuery({
+        name: 's',
+        description: 'Search query for autocomplete',
+        required: false,
+        type: String,
+    })
+    @ApiImplicitQuery({
+        name: 'autocomplete',
+        description: 'Is it autocomplete',
+        required: false,
+        type: Boolean,
+    })
     async getListDocument(
         @Res() res,
         @Request() req,
+        @Query('s') s: string,
+        @Query('autocomplete') autocomplete: string,
         @Query('page') page: number,
         @Query('pageSize') pageSize: number,
     ) {
         try {
             const user = await this.userService.verifyByToken(req.headers.authorization);
-            const documents = await this.documentService.getListDocument(user, page, pageSize);
+            const documents = await this.documentService.getListDocument(user, autocomplete, s, page, pageSize);
             return res.status(HttpStatus.OK).json(documents);
         } catch (error) {
-            return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(error);
+            return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ error });
         }
     }
 
     @Get('/')
+    @Header('Content-type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document')
     @ApiResponse({ status: 200, description: '', type: DocumentDto })
     @ApiOperation({title: 'Get document.'})
     @ApiImplicitQuery({
@@ -128,33 +141,103 @@ export class DocumentController {
     ) {
         try {
             const user = await this.userService.verifyByToken(req.headers.authorization);
-            const document = await this.documentService.getDocument(id, user);
+            const documentLink = await this.documentService.getDocument(id, user);
 
-            if (!document) {
+            if (!documentLink) {
                 return res.status(HttpStatus.BAD_REQUEST).json({msg: 'Document doesn`t exist or permissions denied.'});
             }
 
-            return res.status(HttpStatus.OK).json(document);
+            return (await this.documentService.downloadDocument(documentLink)).pipe(res);
         } catch (error) {
-            return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(error);
+            console.log(error);
+            return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ error });
+        }
+    }
+
+    @Get('/props')
+    @ApiResponse({ status: 200, description: '', type: DocumentPropertyDto })
+    @ApiOperation({title: 'Get document property.'})
+    @UseGuards(AuthGuard('staff'))
+    @ApiImplicitQuery({
+        name: 'id',
+        description: 'The id of document',
+        required: true,
+        type: Number,
+    })
+    async getDocumentProps(
+        @Res() res,
+        @Request() req,
+        @Query('id') id: number,
+    ) {
+        try {
+            const documentProps = await this.documentService.getDocumentProps(id);
+
+            if (!documentProps) {
+                return res.status(HttpStatus.BAD_REQUEST).json({msg: 'Document doesn`t exist or dosen`t have props.'});
+            }
+
+            return res.status(HttpStatus.OK).json(documentProps);
+        } catch (error) {
+            console.log(error);
+            return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ error });
+        }
+    }
+
+    @Post('/props')
+    @ApiResponse({ status: 200, description: '' })
+    @ApiOperation({title: 'Set document property.'})
+    @UseGuards(AuthGuard('staff'))
+    async setDocumentProps(
+        @Res() res,
+        @Request() req,
+        @Body() docProperty: BodyDocumentPropertyDto,
+    ) {
+        try {
+            await this.documentService.setDocumentProps(docProperty.id, docProperty.props);
+            res.status(HttpStatus.OK).json({ success: true });
+            logger.info(`SET_DOC_PROPS, : {user_id: ${req.user.id} }, documentID: ${docProperty.id}, props: ${JSON.stringify(docProperty.props)}`);
+        } catch (error) {
+            console.log(error);
+            return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ error });
         }
     }
 
     @Put('/')
+    @ApiConsumes('multipart/form-data')
+    @ApiImplicitFile({ name: 'file', required: false })
     @ApiResponse({ status: 200, description: 'Update document info', type: DocumentDto })
     @ApiOperation({title: 'Update document.'})
     @UseGuards(AuthGuard('staff'))
+    @UseInterceptors(FileInterceptor('file',
+        {
+            storage: diskStorage({
+                destination: process.env.DOCUMENT_STORAGE,
+                filename: (req, file, cb) => {
+                    const randomName = Utils.getRandomFileName();
+                    return cb(null, `${randomName}${extname(file.originalname)}`);
+                },
+            }),
+            fileFilter: (req, file, cb) => {
+                const ext = path.extname(file.originalname);
+                if (ext !== '.docx') {
+                    return cb(new Error('Only docx are allowed'), false);
+                }
+                cb(null, true);
+            },
+        },
+    ))
     async putDocument(
       @Res() res,
       @Request() req,
       @Body() documentInfo: UpdateDocumentDto,
+      @UploadedFile() file,
     ) {
         try {
-            const document = await this.documentService.updateDocument(req.user.id, documentInfo);
-
-            return res.status(HttpStatus.OK).json(document);
+            const document = await this.documentService.updateDocument(file ? file.path : null, req.user.id, documentInfo);
+            res.status(HttpStatus.OK).json(document);
+            logger.info(`UPDATE_DOCUMENT, : {user_id: ${req.user.id} }, documentInfo: ${JSON.stringify(documentInfo)}`);
         } catch (error) {
-            return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(error);
+            return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ error });
         }
     }
 
@@ -169,9 +252,10 @@ export class DocumentController {
     ) {
         try {
             await this.documentService.deleteDocument(id);
-            return res.status(HttpStatus.OK).json({success: true});
+            res.status(HttpStatus.OK).json({success: true});
+            logger.info(`DELETE_DOCUMENT, : {user_id: ${req.user.id} }, documentID: ${ id }`);
         } catch (error) {
-            return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(error);
+            return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ error });
         }
     }
 }

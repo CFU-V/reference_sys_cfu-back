@@ -10,9 +10,17 @@ import {
     PrimaryKey,
     ForeignKey,
     AutoIncrement,
-    BelongsTo, BelongsToMany,
+    BelongsTo, BelongsToMany, BeforeUpdate, BeforeCreate, BeforeDestroy, AfterCreate, AfterUpdate,
 } from 'sequelize-typescript';
 import { User } from '../../user/entities/user.entity';
+import { Category } from "./category.entity";
+import { SearchIndexing } from "../../search/search.indexing";
+import {DOCUMENT_INDEX} from "../../common/constants";
+import {Map} from "../../search/search.map";
+import DocumentParser from "../document.parser";
+import {DocumentRecursiveDto} from "../dto/document.tree.dto";
+import {QueryTypes} from "sequelize";
+import { buildDocumentTree } from "../../core/TreeBuilder";
 
 @Table({
     timestamps: true,
@@ -37,9 +45,12 @@ export class Document extends Model<Document> {
     @Column({type: DataType.STRING(6000)})
     info: string;
 
-    @AllowNull(false)
-    @Column({type: DataType.STRING(128)})
-    type: string;
+    @ForeignKey(() => Category)
+    @Column({
+        type: DataType.INTEGER,
+        allowNull: false,
+    })
+    categoryId: number;
 
     @AllowNull(false)
     @Default(true)
@@ -51,9 +62,13 @@ export class Document extends Model<Document> {
     @Column({type: DataType.BOOLEAN})
     visibility: boolean;
 
-    @AllowNull(true)
-    @Column({type: DataType.STRING(256)})
+    @AllowNull(false)
+    @Column({type: DataType.STRING(1024)})
     link: string;
+
+    @AllowNull(true)
+    @Column({type: DataType.STRING(1024)})
+    consultant_link: string;
 
     @AllowNull(true)
     @Default(false)
@@ -89,4 +104,62 @@ export class Document extends Model<Document> {
 
     @BelongsTo(() => Document)
     parent: Document;
+
+    @BelongsTo(() => Category)
+    category: Category;
+
+    @AfterUpdate
+    @AfterCreate
+    static async _indexing(document: Document) {
+        try {
+            const searchIndexing = new SearchIndexing(Document);
+            if (!document.parentId) {
+                await searchIndexing.bulkIndex(DOCUMENT_INDEX, [await this.getDocumentData(document.id)]);
+            } else {
+                await searchIndexing.deleteIfExist(DOCUMENT_INDEX, document.id);
+                await searchIndexing.update(DOCUMENT_INDEX, await this.getDocumentData(document.parentId))
+            }
+        } catch (error) {
+            console.log(error);
+            throw error
+        }
+    }
+
+    @BeforeDestroy
+    static async _deleteIndex(document: Document) {
+        try {
+            const searchIndexing = new SearchIndexing(Document);
+            await searchIndexing.deleteIfExist(DOCUMENT_INDEX, document.id);
+        } catch (error) {
+            console.log(error);
+        }
+    }
+
+    static async getDocumentData(id: number) {
+        try {
+            const doc = await this.findOne({
+                where: { id },
+                include: [{model: Category, as: 'category', attributes: ['title']}]
+            });
+
+            let documents: Array<DocumentRecursiveDto> = await this.sequelize.query(
+                'WITH RECURSIVE sub_documents(id, link, "parentId", level) AS (' +
+                `SELECT id, link, "parentId", 1 FROM documents WHERE id = :nodeId ` +
+                'UNION ALL ' +
+                'SELECT d.id, d.link, d."parentId", level+1 ' +
+                'FROM documents d, sub_documents sd ' +
+                'WHERE d."parentId" = sd.id) ' +
+                'SELECT id, link, "parentId", level FROM sub_documents ORDER BY level ASC, id ASC;',
+                {replacements: { nodeId: id }, type: QueryTypes.SELECT, mapToModel: true });
+
+            const documentParser = new DocumentParser();
+            doc.setDataValue('text', await documentParser.extract(doc.link, await buildDocumentTree(documents, id)));
+            console.log("TYT  "+JSON.stringify(doc));
+
+            return await Map.documents(doc.get({ plain: true }));
+        } catch (error) {
+            console.log(error);
+            throw error;
+        }
+    }
 }

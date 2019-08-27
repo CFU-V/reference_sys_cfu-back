@@ -6,6 +6,8 @@ import { UserModule } from './user/user.module';
 import { AuthModule } from './auth/auth.module';
 import { DocumentModule } from './document/document.module';
 import { BookmarkModule } from './bookmarks/bookmark.module';
+import { SearchModule } from './search/search.module';
+import { LogsModule } from './logs/logs.module';
 
 @Module({
   imports: [
@@ -15,6 +17,8 @@ import { BookmarkModule } from './bookmarks/bookmark.module';
     AuthModule,
     DocumentModule,
     BookmarkModule,
+    SearchModule,
+    LogsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

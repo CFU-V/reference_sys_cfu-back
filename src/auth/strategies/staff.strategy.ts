@@ -4,6 +4,7 @@ import { ExtractJwt, Strategy, VerifiedCallback } from 'passport-jwt';
 
 import { AuthService } from '../auth.service';
 import { PayloadDTO } from '../dto/payload.dto';
+import { ADMIN_ROLE, MANAGER_ROLE } from "../../common/constants";
 
 @Injectable()
 export class StaffStrategy extends PassportStrategy(Strategy, 'staff') {
@@ -16,8 +17,8 @@ export class StaffStrategy extends PassportStrategy(Strategy, 'staff') {
 
   async validate(payload: any, done: VerifiedCallback) {
     const user = await this.authService.validateUser(
-      {id: payload.id, login: payload.login, role: 'admin'},
-      'manager',
+      {id: payload.id, login: payload.login, role: ADMIN_ROLE},
+      [ MANAGER_ROLE ],
     );
 
     if (!user) {

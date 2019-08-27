@@ -1,10 +1,18 @@
-import { Injectable, Inject, HttpException, HttpStatus } from '@nestjs/common';
+import { HttpException, HttpStatus, Inject, Injectable } from '@nestjs/common';
 import { Document } from './entities/document.entity';
 import { EntitiesWithPaging } from '../common/paging/paging.entities';
 import { PAGE, PAGE_SIZE } from '../common/paging/paging.constants';
-import { DocumentDto, UpdateDocumentDto } from './dto/document.dto';
+import { DocumentDto, FormattedDocumentDto, UpdateDocumentDto } from './dto/document.dto';
 import * as fs from 'fs';
-import DocumentParser from "./document.parser";
+import DocumentParser from './document.parser';
+import { Op, QueryTypes } from 'sequelize';
+import { buildDocumentTree } from '../core/TreeBuilder';
+import { DocumentRecursiveDto } from './dto/document.tree.dto';
+import Utils from '../core/Utils';
+import * as path from 'path';
+import { DOCX_TPM_FOLDER_PATH } from '../common/constants';
+import { ReadStream } from 'fs';
+import { DocumentPropertyDto } from './dto/document.property.dto';
 
 @Injectable()
 export class DocumentService {
@@ -18,7 +26,7 @@ export class DocumentService {
             ownerId,
             parentId: document.parentId,
             info: document.info,
-            type: document.type,
+            categoryId: document.categoryId,
             active: document.active,
             visibility: document.visibility,
             renew: document.renew,
@@ -26,14 +34,24 @@ export class DocumentService {
         });
     }
 
-    async getListDocument(user: any, page?: number, pageSize?: number) {
+    async getListDocument(user: any, autocomplete?: string, title?: string, page?: number, pageSize?: number) {
         page = page > 0 ? page : PAGE;
         pageSize = pageSize > 0 ? pageSize : PAGE_SIZE;
         const offset: number = pageSize * page;
+        const where = {};
+
+        if (!user) {
+            where['visibility'] = true;
+        }
+
+        if (autocomplete === 'true') {
+            where['title'] = {[Op.iLike]: `%${title ? title : ''}%`} ;
+        }
+
         const options = {
             limit: pageSize,
             offset,
-            where: user ? {} : { visibility: true },
+            where,
         };
 
         const result = await this.documentRepository.findAndCountAll(options);
@@ -41,37 +59,78 @@ export class DocumentService {
         return new EntitiesWithPaging(result.rows, result.count, page, pageSize);
     }
 
-    async getDocument(id: number, user: any) {
-        const options = {
-            where: user ? { id } : { id, visibility: true },
-            attributes: ['id', 'link'],
-        };
+    async getDocument(id: number, user: any): Promise<string> {
+        let resultDocument: FormattedDocumentDto;
 
-        let document = await this.documentRepository.findOne(options);
+        const documents: Array<DocumentRecursiveDto> = await this.documentRepository.sequelize.query(
+            'WITH RECURSIVE sub_documents(id, link, "parentId", level) AS (' +
+            `SELECT id, link, "parentId", 1 FROM documents WHERE id = :nodeId ${user ? '' : 'AND visibility = :visibility'} ` +
+            'UNION ALL ' +
+            'SELECT d.id, d.link, d."parentId", level+1 ' +
+            'FROM documents d, sub_documents sd ' +
+            'WHERE d."parentId" = sd.id) ' +
+            'SELECT id, link, "parentId", level FROM sub_documents ORDER BY level ASC, id ASC;',
+            {replacements: { nodeId: id, visibility: true }, type: QueryTypes.SELECT, mapToModel: true });
 
-        if (document) {
-            const documentParser = new DocumentParser(this.documentRepository, document);
-            document = documentParser.format();
+        if (documents) {
+            const documentParser = new DocumentParser();
+            resultDocument = await documentParser.formatLite(await buildDocumentTree(documents, id));
         }
-
-        return document;
+        return resultDocument.resultedLink;
     }
 
-    async updateDocument(ownerId: number, document: UpdateDocumentDto) {
-        const oldDoc = await this.documentRepository.findOne({ where: {id: document.id} });
-        if (oldDoc) {
-            return await oldDoc.update({
-                title: document.title,
-                ownerId,
-                parentId: document.parentId,
-                info: document.info,
-                type: document.type,
-                active: document.active,
-                visibility: document.visibility,
-                renew: document.renew,
-            });
+    async getDocumentProps(id: number): Promise<object> {
+        let documentProps;
+        const document = await this.documentRepository.findOne({ where: { id } });
+
+        if (document) {
+            const documentParser = new DocumentParser();
+            documentProps = await documentParser.getProps(document);
+        }
+
+        return documentProps;
+    }
+
+    async setDocumentProps(id: number, props: DocumentPropertyDto): Promise<void> {
+        const document = await this.documentRepository.findOne({ where: { id } });
+
+        if (document) {
+            const documentParser = new DocumentParser();
+            await documentParser.setProps(document, props);
         } else {
-            return new HttpException(`Document with id ${document.id} doesn\`t exist.`, HttpStatus.BAD_REQUEST);
+            throw new HttpException(`Document with id ${id} dosen't exist`, 404);
+        }
+    }
+
+    downloadDocument(docPath: string) {
+        return fs.createReadStream(docPath);
+    }
+
+    async updateDocument(filePath: string, ownerId: number, document: UpdateDocumentDto) {
+        try {
+            const oldDoc = await this.documentRepository.findOne({ where: {id: document.id} });
+            if (oldDoc) {
+                if (filePath) {
+                    Utils.deleteIfExist(oldDoc.link);
+                }
+
+                return await oldDoc.update({
+                    title: document.title ? document.title : oldDoc.title,
+                    ownerId,
+                    parentId: document.parentId ? document.parentId : oldDoc.parentId,
+                    info: document.info ? document.info : oldDoc.info,
+                    categoryId: document.categoryId ? document.categoryId : oldDoc.categoryId,
+                    active: document.active ? document.active : oldDoc.active,
+                    visibility: document.visibility ? document.visibility : oldDoc.visibility,
+                    link: filePath ? filePath : oldDoc.link,
+                    renew: document.renew ? document.renew : oldDoc.renew,
+                });
+            } else {
+                return new HttpException(`Document with id ${document.id} doesn\`t exist.`, HttpStatus.BAD_REQUEST);
+            }
+        } catch (error) {
+            console.log(error);
+            throw error;
         }
     }
 
@@ -84,7 +143,7 @@ export class DocumentService {
                 const deleted = await document.destroy({transaction: t});
 
                 t.commit();
-                fs.unlinkSync(document.link);
+                Utils.deleteIfExist(document.link);
                 return deleted;
             } catch (e) {
                 t.rollback();

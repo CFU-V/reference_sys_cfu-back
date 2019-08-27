@@ -30,7 +30,6 @@ export class AuthController {
     };
     const token = await this.authService.signPayload(payload);
     res.status(HttpStatus.OK).json({ user, token });
-    logger.info(`LOGIN: ${JSON.stringify(user)}`);
   }
 
   @Post('registration')
