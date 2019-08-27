@@ -6,7 +6,7 @@ import {
     BOOKMARK_END_SELECTOR, BOOKMARK_END_SELECTOR_TEXT, BOOKMARK_ID_SELECTOR, BOOKMARK_ID_SELECTOR_TEXT,
     BOOKMARK_NAME_PATTERN, BOOKMARK_NAME_SELECTOR,
     BOOKMARK_NAME_SELECTOR_TEXT, BOOKMARK_R_SELECTOR_TEXT, BOOKMARK_START_SELECTOR, BOOKMARK_START_SELECTOR_TEXT,
-    BOOKMARK_TEXT_SELECTOR, DOCX_TPM_FOLDER_PATH, DOCX_XML_PATH,
+    BOOKMARK_TEXT_SELECTOR, CORE_XML_PATH, DOCX_TPM_FOLDER_PATH, DOCX_XML_PATH, PROPERTY_FIELDS,
 } from '../common/constants';
 import * as path from 'path';
 import { DocumentRecursiveDto, DocumentTreeDto } from './dto/document.tree.dto';
@@ -14,6 +14,11 @@ import { FormattedDocumentDto } from './dto/document.dto';
 import * as textract from 'textract';
 import Utils from '../core/Utils';
 import * as fsxml from 'fast-xml-parser';
+import * as xml2js from 'xml2js';
+import { Document } from './entities/document.entity';
+import { errorObject } from 'rxjs/internal-compatibility';
+import { DocumentPropertyDto } from './dto/document.property.dto';
+import { HttpException } from '@nestjs/common';
 
 const cheerioOptions = {decodeEntities: false, xmlMode: true, normalizeTags: true, normalizeWhitespace: true};
 
@@ -106,6 +111,59 @@ export default class DocumentParser {
             console.log(error);
             throw error;
         }
+    }
+
+    public async getProps(document: Document): Promise<object> {
+        return new Promise(async (resolve, reject) => {
+            try {
+                const propsXml = await this.extractDocumentProperty(document.link);
+                const $ = await cheerio.load(propsXml, cheerioOptions);
+                const propJson = {};
+                for (const propSelector of Object.keys(PROPERTY_FIELDS)) {
+                    propJson[PROPERTY_FIELDS[propSelector]] = $(propSelector).text();
+                }
+                resolve(propJson);
+            } catch (error) {
+                console.log(error);
+                reject(error);
+            }
+        });
+    }
+
+    public async setProps(document: Document, props: DocumentPropertyDto): Promise<void> {
+        return new Promise(async (resolve, reject) => {
+            try {
+                const propsXml = await this.extractDocumentProperty(document.link);
+                const $ = await cheerio.load(propsXml, cheerioOptions);
+                for (const propSelector of Object.keys(PROPERTY_FIELDS)) {
+                    if (props[PROPERTY_FIELDS[propSelector]]) {
+                        if (
+                            props[PROPERTY_FIELDS[propSelector]] === 'creteAt' ||
+                            props[PROPERTY_FIELDS[propSelector]] === 'updatedAt'
+                        ) {
+                            if (!Number(props[PROPERTY_FIELDS[propSelector]])) {
+                                return new HttpException(`${props[PROPERTY_FIELDS[propSelector]]} must be timestamp`, 500);
+                            }
+
+                            $(propSelector)
+                                .text(
+                                    new Date(new Date(Number(props[PROPERTY_FIELDS[propSelector]]))
+                                        .toString()
+                                        .split('GMT')[0] + ' UTC')
+                                        .toISOString()
+                                        .split('.')[0] + 'Z');
+                        } else {
+                            $(propSelector).text(props[PROPERTY_FIELDS[propSelector]]);
+                        }
+                    }
+                }
+                await this.saveDocumentProperty($, document);
+                resolve();
+            } catch (error) {
+                console.log(error);
+                reject(error);
+            }
+        });
     }
 
     private async setMainBookmarks(formattedDocument: CheerioStatic, bookmarks: Array<BookmarkData>): Promise<CheerioStatic> {
@@ -245,11 +303,24 @@ export default class DocumentParser {
         return await zip.readAsText(DOCX_XML_PATH);
     }
 
+    private async extractDocumentProperty(docPath: string): Promise<string> {
+        const zip = new Zip(docPath);
+        return await zip.readAsText(CORE_XML_PATH);
+    }
+
     private async saveDocx(zip: Zip, formattedDocument: CheerioStatic, document: DocumentRecursiveDto): Promise<string> {
         const link = path.resolve(__dirname, `${DOCX_TPM_FOLDER_PATH}/${path.basename(document.link)}`);
         await zip.addFile(DOCX_XML_PATH, Buffer.from(formattedDocument.xml()));
         await zip.writeZip(link);
         return link;
+    }
+
+    private async saveDocumentProperty(props: CheerioStatic, document: Document): Promise<void> {
+        const zip = new Zip(document.link);
+        const link = path.resolve(document.link);
+        await zip.deleteFile(CORE_XML_PATH);
+        await zip.addFile(CORE_XML_PATH, Buffer.from(props.xml()));
+        await zip.writeZip(link);
     }
 
     private getPathForTempDocument(docPath: string): string {

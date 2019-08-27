@@ -27,6 +27,8 @@ import { ValidateObjectId } from '../shared/pipes/validate-object-id.pipes';
 import * as path from 'path';
 import { verify } from 'jsonwebtoken';
 import { UserService } from '../user/user.service';
+import { DocumentPropertyDto } from './dto/document.property.dto';
+import { BodyDocumentPropertyDto } from './dto/document.body.property.dto';
 
 @ApiUseTags('document')
 @ApiBearerAuth()
@@ -145,6 +147,53 @@ export class DocumentController {
             }
 
             return (await this.documentService.downloadDocument(documentLink)).pipe(res);
+        } catch (error) {
+            console.log(error);
+            return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ error });
+        }
+    }
+
+    @Get('/props')
+    @ApiResponse({ status: 200, description: '', type: DocumentPropertyDto })
+    @ApiOperation({title: 'Get document property.'})
+    @UseGuards(AuthGuard('staff'))
+    @ApiImplicitQuery({
+        name: 'id',
+        description: 'The id of document',
+        required: true,
+        type: Number,
+    })
+    async getDocumentProps(
+        @Res() res,
+        @Request() req,
+        @Query('id') id: number,
+    ) {
+        try {
+            const documentProps = await this.documentService.getDocumentProps(id);
+
+            if (!documentProps) {
+                return res.status(HttpStatus.BAD_REQUEST).json({msg: 'Document doesn`t exist or dosen`t have props.'});
+            }
+
+            return res.status(HttpStatus.OK).json(documentProps);
+        } catch (error) {
+            console.log(error);
+            return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ error });
+        }
+    }
+
+    @Post('/props')
+    @ApiResponse({ status: 200, description: '' })
+    @ApiOperation({title: 'Set document property.'})
+    @UseGuards(AuthGuard('staff'))
+    async setDocumentProps(
+        @Res() res,
+        @Request() req,
+        @Body() docProperty: BodyDocumentPropertyDto,
+    ) {
+        try {
+            await this.documentService.setDocumentProps(docProperty.id, docProperty.props);
+            return res.status(HttpStatus.OK).json({ success: true });
         } catch (error) {
             console.log(error);
             return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ error });

@@ -13,7 +13,18 @@ export const BOOKMARK_ID_SELECTOR_TEXT: string = 'w:id';
 export const BOOKMARK_ID_SELECTOR: string = 'w\\:id';
 export const BOOKMARK_NAME_PATTERN: RegExp = /^Замена[0-9]{1,}$/;
 export const DOCX_XML_PATH: string = 'word/document.xml';
+export const CORE_XML_PATH: string = 'docProps/core.xml';
 export const DOCX_TPM_FOLDER_PATH: string = 'tmp';
 export const DOCUMENT_INDEX: string = 'documents';
 export const ALL_INDEX: string = '_all';
 export const TOKENIZE_REGEXP: RegExp = /[a-zА-Я0-9]/gi;
+export const PROPERTY_FIELDS: object = {
+    'dc\\:title': 'title',
+    'dc\\:subject': 'subject',
+    'dc\\:creator': 'creator',
+    'cp\\:keywords': 'keywords',
+    'cp\\:lastModifiedBy': 'lastModifiedBy',
+    'cp\\:revision': 'revision',
+    'dcterms\\:created': 'createdAt',
+    'dcterms\\:modified': 'updatedAt',
+};

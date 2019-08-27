@@ -12,6 +12,7 @@ import Utils from '../core/Utils';
 import * as path from 'path';
 import { DOCX_TPM_FOLDER_PATH } from '../common/constants';
 import { ReadStream } from 'fs';
+import { DocumentPropertyDto } from './dto/document.property.dto';
 
 @Injectable()
 export class DocumentService {
@@ -76,6 +77,29 @@ export class DocumentService {
             resultDocument = await documentParser.formatLite(await buildDocumentTree(documents, id));
         }
         return resultDocument.resultedLink;
+    }
+
+    async getDocumentProps(id: number): Promise<object> {
+        let documentProps;
+        const document = await this.documentRepository.findOne({ where: { id } });
+
+        if (document) {
+            const documentParser = new DocumentParser();
+            documentProps = await documentParser.getProps(document);
+        }
+
+        return documentProps;
+    }
+
+    async setDocumentProps(id: number, props: DocumentPropertyDto): Promise<void> {
+        const document = await this.documentRepository.findOne({ where: { id } });
+
+        if (document) {
+            const documentParser = new DocumentParser();
+            await documentParser.setProps(document, props);
+        } else {
+            throw new HttpException(`Document with id ${id} dosen't exist`, 404);
+        }
     }
 
     downloadDocument(docPath: string) {
