@@ -111,8 +111,30 @@ export class DocumentService {
         }
     }
 
-    downloadDocument(fileName: string) {
-        return fs.createReadStream(path.resolve(__dirname, `${DOCX_TPM_FOLDER_PATH}/${fileName}`));
+    async downloadDocument(id: number, user: any) {
+        const whereOpt = { id };
+
+        if (!user) {
+            whereOpt['visibility'] = true;
+        }
+
+        const document = await this.documentRepository.findOne({where: whereOpt });
+        if (document) {
+            const fileName = path.basename(document.link);
+            if (fs.existsSync(path.resolve(__dirname, `${DOCX_TPM_FOLDER_PATH}/${fileName}`))) {
+                return fs.createReadStream(path.resolve(__dirname, `${DOCX_TPM_FOLDER_PATH}/${fileName}`));
+            } else {
+                throw new HttpException(
+                    `File with name ${fileName} dosen't exist, try to call /document?id=${id}`,
+                    HttpStatus.NOT_FOUND,
+                );
+            }
+        } else {
+            throw new HttpException(
+                `File with id = ${id} dosen't exist or permissions denied`,
+                HttpStatus.NOT_FOUND,
+            );
+        }
     }
 
     async updateDocument(filePath: string, ownerId: number, document: UpdateDocumentDto) {
