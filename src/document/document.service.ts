@@ -11,13 +11,15 @@ import { DocumentRecursiveDto } from './dto/document.tree.dto';
 import Utils from '../core/Utils';
 import * as path from 'path';
 import { DOCX_TPM_FOLDER_PATH } from '../common/constants';
-import { ReadStream } from 'fs';
 import { DocumentPropertyDto } from './dto/document.property.dto';
+import { GetDocumentDto } from './dto/deocument.get.dto';
+import { Bookmark } from '../bookmarks/entities/bookmark.entity';
 
 @Injectable()
 export class DocumentService {
     constructor(
         @Inject('DocumentRepository') private readonly documentRepository: typeof Document,
+        @Inject('BookmarkRepository') private readonly bookmarkRepository: typeof Bookmark,
     ) {}
 
     async addDocument(ownerId: number, filePath: string, document: DocumentDto) {
@@ -59,9 +61,7 @@ export class DocumentService {
         return new EntitiesWithPaging(result.rows, result.count, page, pageSize);
     }
 
-    async getDocument(id: number, user: any): Promise<string> {
-        let resultDocument: FormattedDocumentDto;
-
+    async getDocument(id: number, user: any): Promise<GetDocumentDto> {
         const documents: Array<DocumentRecursiveDto> = await this.documentRepository.sequelize.query(
             'WITH RECURSIVE sub_documents(id, link, "parentId", level) AS (' +
             `SELECT id, link, "parentId", 1 FROM documents WHERE id = :nodeId ${user ? '' : 'AND visibility = :visibility'} ` +
@@ -72,11 +72,20 @@ export class DocumentService {
             'SELECT id, link, "parentId", level FROM sub_documents ORDER BY level ASC, id ASC;',
             {replacements: { nodeId: id, visibility: true }, type: QueryTypes.SELECT, mapToModel: true });
 
-        if (documents) {
+        if (documents.length > 0) {
+            const response: GetDocumentDto = {
+                fileName: '',
+            };
             const documentParser = new DocumentParser();
-            resultDocument = await documentParser.formatLite(await buildDocumentTree(documents, id));
+            const resultDocument: FormattedDocumentDto = await documentParser.formatLite(await buildDocumentTree(documents, id));
+            response.fileName = resultDocument.resultedFileName;
+            if (user) {
+                response.bookmarks =  await this.bookmarkRepository.findOne({ where: { userId: user.id, docId: id } });
+            }
+            return response;
+        } else {
+            throw new HttpException(`Document with id = ${id} dosen't exist or permission denied`, HttpStatus.NOT_FOUND);
         }
-        return resultDocument.resultedLink;
     }
 
     async getDocumentProps(id: number): Promise<object> {
@@ -102,8 +111,8 @@ export class DocumentService {
         }
     }
 
-    downloadDocument(docPath: string) {
-        return fs.createReadStream(docPath);
+    downloadDocument(fileName: string) {
+        return fs.createReadStream(path.resolve(__dirname, `${DOCX_TPM_FOLDER_PATH}/${fileName}`));
     }
 
     async updateDocument(filePath: string, ownerId: number, document: UpdateDocumentDto) {
