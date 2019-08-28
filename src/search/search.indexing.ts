@@ -18,8 +18,7 @@ export class SearchIndexing implements OnModuleInit {
     ) {}
 
     async onModuleInit() {
-        //this.indexCronJob();
-        this._do()
+        this.indexCronJob();
     }
 
     indexCronJob() {
