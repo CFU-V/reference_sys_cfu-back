@@ -121,7 +121,7 @@ export class Document extends Model<Document> {
             }
         } catch (error) {
             console.log(error);
-            throw error
+            throw error;
         }
     }
 
@@ -139,7 +139,7 @@ export class Document extends Model<Document> {
         try {
             const doc = await this.findOne({
                 where: { id },
-                include: [{model: Category, as: 'category', attributes: ['title']}]
+                include: [{model: Category, as: 'category', attributes: ['title']}],
             });
 
             let documents: Array<DocumentRecursiveDto> = await this.sequelize.query(
@@ -154,7 +154,6 @@ export class Document extends Model<Document> {
 
             const documentParser = new DocumentParser();
             doc.setDataValue('text', await documentParser.extract(doc.link, await buildDocumentTree(documents, id)));
-            console.log("TYT  "+JSON.stringify(doc));
 
             return await Map.documents(doc.get({ plain: true }));
         } catch (error) {

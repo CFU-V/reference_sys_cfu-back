@@ -132,17 +132,18 @@ export class DocumentController {
         }
     }
 
-    @Get('/download/:fileName')
+    @Get('/download/:id')
     @Header('Content-type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document')
     @ApiResponse({ status: 200, description: '' })
     @ApiOperation({title: 'Download document.'})
     async downloadDocument(
         @Res() res,
         @Request() req,
-        @Param('fileName') fileName: string,
+        @Param('id') id: number
     ) {
         try {
-            return (await this.documentService.downloadDocument(fileName)).pipe(res);
+            const user = await this.userService.verifyByToken(req.headers.authorization);
+            return (await this.documentService.downloadDocument(id, user)).pipe(res);
         } catch (error) {
             console.log(error);
             res.setHeader('Content-type', 'application/json');
