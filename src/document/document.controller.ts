@@ -27,6 +27,7 @@ import { ValidateObjectId } from '../shared/pipes/validate-object-id.pipes';
 import * as path from 'path';
 import { verify } from 'jsonwebtoken';
 import { UserService } from '../user/user.service';
+import { GetDocumentDto } from './dto/deocument.get.dto';
 
 @ApiUseTags('document')
 @ApiBearerAuth()
@@ -108,8 +109,7 @@ export class DocumentController {
     }
 
     @Get('/')
-    @Header('Content-type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document')
-    @ApiResponse({ status: 200, description: '', type: DocumentDto })
+    @ApiResponse({ status: 200, description: '', type: GetDocumentDto })
     @ApiOperation({title: 'Get document.'})
     @ApiImplicitQuery({
         name: 'id',
@@ -124,15 +124,28 @@ export class DocumentController {
     ) {
         try {
             const user = await this.userService.verifyByToken(req.headers.authorization);
-            const documentLink = await this.documentService.getDocument(id, user);
-
-            if (!documentLink) {
-                return res.status(HttpStatus.BAD_REQUEST).json({msg: 'Document doesn`t exist or permissions denied.'});
-            }
-
-            return (await this.documentService.downloadDocument(documentLink)).pipe(res);
+            const response = await this.documentService.getDocument(id, user);
+            return res.status(HttpStatus.OK).json(response);
         } catch (error) {
             console.log(error);
+            return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ error });
+        }
+    }
+
+    @Get('/download/:fileName')
+    @Header('Content-type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document')
+    @ApiResponse({ status: 200, description: '' })
+    @ApiOperation({title: 'Download document.'})
+    async downloadDocument(
+        @Res() res,
+        @Request() req,
+        @Param('fileName') fileName: string,
+    ) {
+        try {
+            return (await this.documentService.downloadDocument(fileName)).pipe(res);
+        } catch (error) {
+            console.log(error);
+            res.setHeader('Content-type', 'application/json');
             return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ error });
         }
     }

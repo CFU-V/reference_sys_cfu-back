@@ -1,6 +1,7 @@
 import { Document } from './entities/document.entity';
 import { User } from '../user/entities/user.entity';
 import { Role } from '../user/entities/role.entity';
+import { Bookmark } from '../bookmarks/entities/bookmark.entity';
 
 export const documentProviders = [
     {
@@ -14,5 +15,9 @@ export const documentProviders = [
     {
         provide: 'RoleRepository',
         useValue: Role,
+    },
+    {
+        provide: 'BookmarkRepository',
+        useValue: Bookmark,
     },
 ];

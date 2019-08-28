@@ -32,7 +32,7 @@ export default class DocumentParser {
             parentId: documentsTree.parentId,
             level: documentsTree.level,
             formatted: await cheerio.load(zip.readAsText(DOCX_XML_PATH), cheerioOptions),
-            resultedLink: null,
+            resultedFileName: null,
         };
         zip.deleteFile(DOCX_XML_PATH);
 
@@ -48,13 +48,13 @@ export default class DocumentParser {
                     level: child.level,
                     link: child.link,
                     formatted: null,
-                    resultedLink: null,
+                    resultedFileName: null,
                 });
                 formattedDocument.formatted = await this.setChildBody(formattedDocument.formatted, childBody);
             }
         }
 
-        formattedDocument.resultedLink = await this.saveDocx(zip, formattedDocument.formatted, documentsTree);
+        formattedDocument.resultedFileName = await this.saveDocx(zip, formattedDocument.formatted, documentsTree);
         return formattedDocument;
     }
 
@@ -66,7 +66,7 @@ export default class DocumentParser {
             parentId: documentsTree.parentId,
             level: documentsTree.level,
             formatted: await cheerio.load(zip.readAsText(DOCX_XML_PATH), cheerioOptions),
-            resultedLink: null,
+            resultedFileName: null,
         };
         zip.deleteFile(DOCX_XML_PATH);
 
@@ -82,13 +82,13 @@ export default class DocumentParser {
                     level: child.level,
                     link: child.link,
                     formatted: null,
-                    resultedLink: null,
+                    resultedFileName: null,
                 });
                 formattedDocument.formatted = await this.setMainBookmarks(formattedDocument.formatted, bookmarks);
             }
         }
 
-        formattedDocument.resultedLink = await this.saveDocx(zip, formattedDocument.formatted, documentsTree);
+        formattedDocument.resultedFileName = await this.saveDocx(zip, formattedDocument.formatted, documentsTree);
         return formattedDocument;
     }
 
@@ -247,7 +247,7 @@ export default class DocumentParser {
         const link = path.resolve(__dirname, `${DOCX_TPM_FOLDER_PATH}/${path.basename(document.link)}`);
         await zip.addFile(DOCX_XML_PATH, Buffer.from(formattedDocument.xml()));
         await zip.writeZip(link);
-        return link;
+        return path.basename(document.link);
     }
 
     private getPathForTempDocument(docPath: string): string {
