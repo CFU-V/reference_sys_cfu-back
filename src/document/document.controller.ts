@@ -73,7 +73,7 @@ export class DocumentController {
         try {
             const document = await this.documentService.addDocument(req.user.id, file.path, documentInfo);
             res.status(HttpStatus.OK).json(document);
-            logger.info(`ADD_DOCUMENT, : {user_id: ${req.user.id} }, document: ${JSON.stringify(document)}`)
+            logger.info(`ADD_DOCUMENT, : {user_id: ${req.user.id} }, document: ${JSON.stringify(document)}`);
         } catch (error) {
             Utils.deleteIfExist(file.path);
             return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ error });
@@ -206,9 +206,9 @@ export class DocumentController {
         @Body() docProperty: BodyDocumentPropertyDto,
     ) {
         try {
-            await this.documentService.setDocumentProps(docProperty.id, docProperty.props);
+            await this.documentService.setDocumentProps(docProperty);
             res.status(HttpStatus.OK).json({ success: true });
-            logger.info(`SET_DOC_PROPS, : {user_id: ${req.user.id} }, documentID: ${docProperty.id}, props: ${JSON.stringify(docProperty.props)}`);
+            logger.info(`SET_DOC_PROPS, : {user_id: ${req.user.id} }, documentID: ${docProperty.id}, props: ${JSON.stringify(docProperty)}`);
         } catch (error) {
             console.log(error);
             return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ error });
@@ -268,7 +268,7 @@ export class DocumentController {
             res.status(HttpStatus.OK).json({success: true});
             logger.info(`DELETE_DOCUMENT, : {user_id: ${req.user.id} }, documentID: ${ id }`);
         } catch (error) {
-            return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ error });
+            res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ error });
         }
     }
 }

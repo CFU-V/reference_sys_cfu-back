@@ -15,6 +15,18 @@ module.exports = {
       type: "string"
     },
     {
+      name: "number",
+      boost: 2,
+      fuzziness: 1,
+      type: "string"
+    },
+    {
+      name: "number.keyword",
+      boost: 2,
+      fuzziness: 1,
+      type: "string"
+    },
+    {
       name: "info",
       boost: 2,
       fuzziness: 1,

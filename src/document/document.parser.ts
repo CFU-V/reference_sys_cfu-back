@@ -19,6 +19,7 @@ import { Document } from './entities/document.entity';
 import { errorObject } from 'rxjs/internal-compatibility';
 import { DocumentPropertyDto } from './dto/document.property.dto';
 import { HttpException } from '@nestjs/common';
+import { BodyDocumentPropertyDto } from './dto/document.body.property.dto';
 
 const cheerioOptions = {decodeEntities: false, xmlMode: true, normalizeTags: true, normalizeWhitespace: true};
 
@@ -113,10 +114,10 @@ export default class DocumentParser {
         }
     }
 
-    public async getProps(document: Document): Promise<object> {
+    public async getProps(link: string): Promise<any> {
         return new Promise(async (resolve, reject) => {
             try {
-                const propsXml = await this.extractDocumentProperty(document.link);
+                const propsXml = await this.extractDocumentProperty(link);
                 const $ = await cheerio.load(propsXml, cheerioOptions);
                 const propJson = {};
                 for (const propSelector of Object.keys(PROPERTY_FIELDS)) {
@@ -130,7 +131,7 @@ export default class DocumentParser {
         });
     }
 
-    public async setProps(document: Document, props: DocumentPropertyDto): Promise<void> {
+    public async setProps(document: Document, props: BodyDocumentPropertyDto): Promise<void> {
         return new Promise(async (resolve, reject) => {
             try {
                 const propsXml = await this.extractDocumentProperty(document.link);
@@ -138,8 +139,8 @@ export default class DocumentParser {
                 for (const propSelector of Object.keys(PROPERTY_FIELDS)) {
                     if (props[PROPERTY_FIELDS[propSelector]]) {
                         if (
-                            props[PROPERTY_FIELDS[propSelector]] === 'creteAt' ||
-                            props[PROPERTY_FIELDS[propSelector]] === 'updatedAt'
+                            PROPERTY_FIELDS[propSelector] === 'createdAt' ||
+                            PROPERTY_FIELDS[propSelector] === 'updatedAt'
                         ) {
                             if (!Number(props[PROPERTY_FIELDS[propSelector]])) {
                                 return new HttpException(`${props[PROPERTY_FIELDS[propSelector]]} must be timestamp`, 500);

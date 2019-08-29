@@ -11,6 +11,8 @@ export class DocumentDto {
   @ApiModelProperty()
   categoryId: number;
   @ApiModelProperty()
+  number: string;
+  @ApiModelProperty()
   active: boolean;
   @ApiModelProperty()
   visibility: boolean;
@@ -32,6 +34,8 @@ export class UpdateDocumentDto {
   @ApiModelProperty({required: false})
   categoryId: number;
   @ApiModelProperty({required: false})
+  number: string;
+  @ApiModelProperty({required: false})
   active: boolean;
   @ApiModelProperty({required: false})
   visibility: boolean;
@@ -49,12 +53,14 @@ export class IndexingDocumentDto {
   consultant_link: string;
   renew: boolean;
   ownerId: number;
+  number: string;
   parentId: number;
   categoryId: number;
   updatedAt: Date;
   visibility: boolean;
   category: Category;
   createdAt: Date;
+  registeredAt: Date;
 }
 
 export class IndexedDocumentDto {
@@ -68,11 +74,13 @@ export class IndexedDocumentDto {
   consultant_link: string;
   renew: string;
   ownerId: number;
+  number: string;
   parentId: number;
   categoryId: number;
   visibility: boolean;
   createdAt: string;
   updatedAt: string;
+  registeredAt: string;
 }
 
 export class FormattedDocumentDto {

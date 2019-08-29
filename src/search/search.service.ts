@@ -7,7 +7,6 @@ import { ISearchResponseInterface } from "./dto/search.response.interface";
 import { IndexedDocumentDto } from "../document/dto/document.dto";
 import { ISearchBodyInterface } from "./dto/search.body.interface";
 import { IMustQuery } from "./dto/must.query.interface";
-import { IShouldQuery } from "./dto/should.query.interface";
 const { Client } = require('@elastic/elasticsearch');
 const esClient = new Client({ node: process.env.ELASTIC_URI });
 

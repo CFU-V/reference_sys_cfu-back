@@ -13,14 +13,14 @@ import {
     BelongsTo, BelongsToMany, BeforeUpdate, BeforeCreate, BeforeDestroy, AfterCreate, AfterUpdate,
 } from 'sequelize-typescript';
 import { User } from '../../user/entities/user.entity';
-import { Category } from "./category.entity";
-import { SearchIndexing } from "../../search/search.indexing";
-import {DOCUMENT_INDEX} from "../../common/constants";
-import {Map} from "../../search/search.map";
-import DocumentParser from "../document.parser";
-import {DocumentRecursiveDto} from "../dto/document.tree.dto";
-import {QueryTypes} from "sequelize";
-import { buildDocumentTree } from "../../core/TreeBuilder";
+import { Category } from './category.entity';
+import { SearchIndexing } from '../../search/search.indexing';
+import {DOCUMENT_INDEX} from '../../common/constants';
+import {Map} from '../../search/search.map';
+import DocumentParser from '../document.parser';
+import {DocumentRecursiveDto} from '../dto/document.tree.dto';
+import {QueryTypes} from 'sequelize';
+import { buildDocumentTree } from '../../core/TreeBuilder';
 
 @Table({
     timestamps: true,
@@ -74,6 +74,10 @@ export class Document extends Model<Document> {
     @Default(false)
     @Column({type: DataType.BOOLEAN})
     renew: boolean;
+
+    @AllowNull(false)
+    @Column({type: DataType.STRING})
+    number: string;
 
     @CreatedAt
     @Default(DataType.NOW)

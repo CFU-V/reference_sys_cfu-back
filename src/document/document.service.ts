@@ -14,6 +14,7 @@ import { DOCX_TPM_FOLDER_PATH } from '../common/constants';
 import { DocumentPropertyDto } from './dto/document.property.dto';
 import { GetDocumentDto } from './dto/deocument.get.dto';
 import { Bookmark } from '../bookmarks/entities/bookmark.entity';
+import { BodyDocumentPropertyDto } from './dto/document.body.property.dto';
 
 @Injectable()
 export class DocumentService {
@@ -30,6 +31,7 @@ export class DocumentService {
             info: document.info,
             categoryId: document.categoryId,
             active: document.active,
+            number: Utils.prettify(document.number),
             visibility: document.visibility,
             renew: document.renew,
             link: filePath,
@@ -88,26 +90,26 @@ export class DocumentService {
         }
     }
 
-    async getDocumentProps(id: number): Promise<object> {
+    async getDocumentProps(id: number): Promise<DocumentPropertyDto> {
         let documentProps;
         const document = await this.documentRepository.findOne({ where: { id } });
 
         if (document) {
             const documentParser = new DocumentParser();
-            documentProps = await documentParser.getProps(document);
+            documentProps = await documentParser.getProps(document.link);
         }
 
         return documentProps;
     }
 
-    async setDocumentProps(id: number, props: DocumentPropertyDto): Promise<void> {
-        const document = await this.documentRepository.findOne({ where: { id } });
+    async setDocumentProps(props: BodyDocumentPropertyDto): Promise<void> {
+        const document = await this.documentRepository.findOne({ where: { id: props.id } });
 
         if (document) {
             const documentParser = new DocumentParser();
             await documentParser.setProps(document, props);
         } else {
-            throw new HttpException(`Document with id ${id} dosen't exist`, 404);
+            throw new HttpException(`Document with id ${props.id} dosen't exist`, 404);
         }
     }
 
@@ -152,6 +154,7 @@ export class DocumentService {
                     info: document.info ? document.info : oldDoc.info,
                     categoryId: document.categoryId ? document.categoryId : oldDoc.categoryId,
                     active: document.active ? document.active : oldDoc.active,
+                    number: document.number ? Utils.prettify(document.number) : oldDoc.number,
                     visibility: document.visibility ? document.visibility : oldDoc.visibility,
                     link: filePath ? filePath : oldDoc.link,
                     renew: document.renew ? document.renew : oldDoc.renew,
@@ -181,7 +184,7 @@ export class DocumentService {
                 throw e;
             }
         } else {
-          return new HttpException(`Document with id ${document.id} doesn\`t exist.`, HttpStatus.BAD_REQUEST);
+          throw new HttpException(`Document with id ${id} doesn\`t exist.`, HttpStatus.BAD_REQUEST);
         }
     }
 }

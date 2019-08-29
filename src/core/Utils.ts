@@ -15,4 +15,8 @@ export default class Utils {
           fs.unlinkSync(docPath);
       }
   }
+
+  public static prettify(str: string): string {
+    return str.trim().replace(/\s|\s+/g, '');
+  }
 }

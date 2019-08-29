@@ -14,7 +14,7 @@ export class DocumentPropertyDto {
     @ApiModelProperty({required: false})
     revision: string;
     @ApiModelProperty({required: false})
-    createdAt: Date;
+    createdAt: string;
     @ApiModelProperty({required: false})
-    updatedAt: Date;
+    updatedAt: string;
 }
