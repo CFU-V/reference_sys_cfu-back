@@ -25,7 +25,7 @@ export async function buildDocumentTree(documents: any, id?: number) : Promise<D
             }
         }
 
-        return documents[map[id]]//return categories[map[await getTopParentId(categories, map, id)]]
+        return documents[map[id]]; // return categories[map[await getTopParentId(categories, map, id)]]
     } catch (error) {
         return error;
     }
@@ -35,6 +35,6 @@ async function getTopParentId(categories, map, id: number) {
     if (categories[map[id]].parentId) {
         return getTopParentId(categories, map, categories[map[id]].parentId)
     } else {
-        return id
+        return id;
     }
 }

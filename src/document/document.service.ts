@@ -2,7 +2,7 @@ import { HttpException, HttpStatus, Inject, Injectable } from '@nestjs/common';
 import { Document } from './entities/document.entity';
 import { EntitiesWithPaging } from '../common/paging/paging.entities';
 import { PAGE, PAGE_SIZE } from '../common/paging/paging.constants';
-import { DocumentDto, FormattedDocumentDto, UpdateDocumentDto } from './dto/document.dto';
+import { DocumentDto, FormattedDocumentDto, FullDocumentDto, IndexedDocumentDto, IndexingDocumentDto, UpdateDocumentDto } from './dto/document.dto';
 import * as fs from 'fs';
 import DocumentParser from './document.parser';
 import { Op, QueryTypes } from 'sequelize';
@@ -24,18 +24,76 @@ export class DocumentService {
     ) {}
 
     async addDocument(ownerId: number, filePath: string, document: DocumentDto) {
-        return await this.documentRepository.create({
-            title: document.title,
-            ownerId,
-            parentId: document.parentId,
-            info: document.info,
-            categoryId: document.categoryId,
-            active: document.active,
-            number: Utils.prettify(document.number),
-            visibility: document.visibility,
-            renew: document.renew,
-            link: filePath,
-        });
+        try {
+            if (document.old_version) {
+                const documents: Array<FullDocumentDto> = await this.documentRepository.sequelize.query(
+                    'WITH RECURSIVE sub_documents(id, ' +
+                    'title, "ownerId", info, ' +
+                    '"categoryId", link, "parentId", ' +
+                    'old_version, number, visibility, renew, level) AS (' +
+                    `SELECT id, ` +
+                    `title, "ownerId", info, ` +
+                    `"categoryId", link, "parentId", ` +
+                    `old_version, number, visibility, renew, ` +
+                    `1 FROM documents WHERE id = :nodeId ` +
+                    'UNION ALL ' +
+                    'SELECT d.id, ' +
+                    'd.title, d."ownerId", d.info, ' +
+                    'd."categoryId", d.link, d."parentId", ' +
+                    'd.old_version, d.number, d.visibility, d.renew, ' +
+                    'level+1 ' +
+                    'FROM documents d, sub_documents sd ' +
+                    'WHERE d."parentId" = sd.id) ' +
+                    'SELECT id, ' +
+                    'title, "ownerId", info, ' +
+                    '"categoryId", link, "parentId", ' +
+                    'old_version, number, visibility, renew, ' +
+                    'level FROM sub_documents ORDER BY level ASC, id ASC;',
+                    {replacements: { nodeId: document.old_version }, type: QueryTypes.SELECT, mapToModel: true });
+                const values = [];
+                for (const recursiveDocument of documents) {
+                    values.push([
+                        recursiveDocument.id,
+                        recursiveDocument.title,
+                        recursiveDocument.ownerId,
+                        recursiveDocument.info,
+                        recursiveDocument.categoryId,
+                        recursiveDocument.link,
+                        recursiveDocument.parentId,
+                        recursiveDocument.old_version,
+                        recursiveDocument.number,
+                        recursiveDocument.visibility,
+                        recursiveDocument.renew,
+                        false]);
+                }
+
+                const query = 'INSERT INTO documents (id, ' +
+                    'title, "ownerId", info, ' +
+                    '"categoryId", link, "parentId", ' +
+                    'old_version, number, visibility, renew, active) VALUES ' +
+                    values.map(_ => '(?)').join(',') +
+                    ' ON CONFLICT (id) DO UPDATE SET active = excluded.active;';
+
+                await this.documentRepository.sequelize.query({ query, values }, { type: QueryTypes.INSERT });
+            }
+
+            return await this.documentRepository.create({
+                title: document.title,
+                ownerId,
+                parentId: document.parentId,
+                info: document.info,
+                categoryId: document.categoryId,
+                active: document.active,
+                old_version: document.old_version,
+                number: Utils.prettify(document.number),
+                visibility: document.visibility,
+                renew: document.renew,
+                link: filePath,
+            });
+        } catch (error) {
+            console.log(error);
+            throw error;
+        }
     }
 
     async getListDocument(user: any, autocomplete?: string, title?: string, page?: number, pageSize?: number) {
@@ -65,13 +123,13 @@ export class DocumentService {
 
     async getDocument(id: number, user: any): Promise<GetDocumentDto> {
         const documents: Array<DocumentRecursiveDto> = await this.documentRepository.sequelize.query(
-            'WITH RECURSIVE sub_documents(id, link, "parentId", level) AS (' +
-            `SELECT id, link, "parentId", 1 FROM documents WHERE id = :nodeId ${user ? '' : 'AND visibility = :visibility'} ` +
+            'WITH RECURSIVE sub_documents(id, link, old_version, "parentId", level) AS (' +
+            `SELECT id, link, old_version, "parentId", 1 FROM documents WHERE id = :nodeId ${user ? '' : 'AND visibility = :visibility'} ` +
             'UNION ALL ' +
-            'SELECT d.id, d.link, d."parentId", level+1 ' +
+            'SELECT d.id, d.link, d.old_version, d."parentId", level+1 ' +
             'FROM documents d, sub_documents sd ' +
             'WHERE d."parentId" = sd.id) ' +
-            'SELECT id, link, "parentId", level FROM sub_documents ORDER BY level ASC, id ASC;',
+            'SELECT id, link, old_version, "parentId", level FROM sub_documents ORDER BY level ASC, id ASC;',
             {replacements: { nodeId: id, visibility: true }, type: QueryTypes.SELECT, mapToModel: true });
 
         if (documents.length > 0) {

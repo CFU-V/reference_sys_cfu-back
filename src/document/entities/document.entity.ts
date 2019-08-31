@@ -10,7 +10,7 @@ import {
     PrimaryKey,
     ForeignKey,
     AutoIncrement,
-    BelongsTo, BelongsToMany, BeforeUpdate, BeforeCreate, BeforeDestroy, AfterCreate, AfterUpdate, HasMany,
+    BelongsTo, BelongsToMany, BeforeUpdate, BeforeCreate, BeforeDestroy, AfterCreate, AfterUpdate, HasMany, HasOne,
 } from 'sequelize-typescript';
 import { User } from '../../user/entities/user.entity';
 import { Category } from './category.entity';
@@ -56,6 +56,13 @@ export class Document extends Model<Document> {
     @Default(true)
     @Column({type: DataType.BOOLEAN})
     active: boolean;
+
+    @ForeignKey(() => Document)
+    @Column({
+        type: DataType.BIGINT,
+        allowNull: true,
+    })
+    old_version: number;
 
     @AllowNull(false)
     @Default(true)
@@ -108,6 +115,12 @@ export class Document extends Model<Document> {
 
     @BelongsTo(() => Document, { onDelete: 'CASCADE' })
     parent: Document;
+
+    @BelongsTo(() => Document, { onDelete: 'CASCADE' })
+    old: Document;
+
+    @HasOne(() => Document, { onDelete: 'CASCADE' })
+    new: Document;
 
     @HasMany(() => Document , { onDelete: 'CASCADE' })
     childs: Document[];

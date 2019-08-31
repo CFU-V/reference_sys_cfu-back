@@ -1,5 +1,5 @@
 import { ApiModelProperty } from '@nestjs/swagger';
-import {Category } from "../entities/category.entity";
+import {Category } from '../entities/category.entity';
 
 export class DocumentDto {
   @ApiModelProperty()
@@ -10,6 +10,8 @@ export class DocumentDto {
   info: string;
   @ApiModelProperty()
   categoryId: number;
+  @ApiModelProperty({required: false})
+  old_version: number;
   @ApiModelProperty()
   number: string;
   @ApiModelProperty()
@@ -65,6 +67,27 @@ export class IndexingDocumentDto {
   registeredAt: Date;
 }
 
+export class FullDocumentDto {
+  id: number;
+  title: string;
+  info: string;
+  text: string;
+  active: boolean;
+  link: string;
+  consultant_link: string;
+  renew: boolean;
+  old_version: number;
+  ownerId: number;
+  number: string;
+  parentId: number;
+  categoryId: number;
+  updatedAt: Date;
+  visibility: boolean;
+  category: Category;
+  createdAt: Date;
+  registeredAt: Date;
+}
+
 export class IndexedDocumentDto {
   id: number;
   title: string;
@@ -89,6 +112,7 @@ export class FormattedDocumentDto {
   id: number;
   link: string;
   parentId: number;
+  old_version: number;
   level: number;
   formatted: CheerioStatic;
   resultedFileName: string;

@@ -36,27 +36,40 @@ export default class DocumentParser {
             id: documentsTree.id,
             link: documentsTree.link,
             parentId: documentsTree.parentId,
+            old_version: documentsTree.old_version,
             level: documentsTree.level,
             formatted: await cheerio.load(zip.readAsText(DOCX_XML_PATH), cheerioOptions),
             resultedFileName: null,
         };
         zip.deleteFile(DOCX_XML_PATH);
 
-        for (const child of documentsTree.childrens) {
-            if (child.childrens.length > 0) {
-                const resultedChild: FormattedDocumentDto = await this.formatLite(child);
-                const childBody = await this.getChildBody(resultedChild);
-                formattedDocument.formatted = await this.setChildBody(formattedDocument.formatted, childBody);
-            } else {
-                const childBody = await this.getChildBody({
-                    id: child.id,
-                    parentId: child.parentId,
-                    level: child.level,
-                    link: child.link,
-                    formatted: null,
-                    resultedFileName: null,
-                });
-                formattedDocument.formatted = await this.setChildBody(formattedDocument.formatted, childBody);
+        if (documentsTree.childrens.length > 0) {
+            for (const child of documentsTree.childrens) {
+                if (child.childrens.length > 0) {
+                    const resultedChild: FormattedDocumentDto = await this.formatLite(child);
+                    const childBody = await this.getChildBody(resultedChild);
+                    formattedDocument.formatted = await this.setChildBody(formattedDocument.formatted, childBody);
+                } else {
+                    const childBody = await this.getChildBody({
+                        id: child.id,
+                        parentId: child.parentId,
+                        level: child.level,
+                        link: child.link,
+                        old_version: child.old_version,
+                        formatted: null,
+                        resultedFileName: null,
+                    });
+                    formattedDocument.formatted = await this.setChildBody(formattedDocument.formatted, childBody);
+                    if (formattedDocument.old_version) {
+                        formattedDocument.formatted = await this.setOldVersion(formattedDocument.old_version, formattedDocument.formatted);
+                        formattedDocument.old_version = null;
+                    }
+                }
+            }
+        } else {
+            if (formattedDocument.old_version) {
+                formattedDocument.formatted = await this.setOldVersion(formattedDocument.old_version, formattedDocument.formatted);
+                formattedDocument.old_version = null;
             }
         }
 
@@ -70,6 +83,7 @@ export default class DocumentParser {
             id: documentsTree.id,
             link: documentsTree.link,
             parentId: documentsTree.parentId,
+            old_version: documentsTree.old_version,
             level: documentsTree.level,
             formatted: await cheerio.load(zip.readAsText(DOCX_XML_PATH), cheerioOptions),
             resultedFileName: null,
@@ -87,10 +101,12 @@ export default class DocumentParser {
                     parentId: child.parentId,
                     level: child.level,
                     link: child.link,
+                    old_version: child.old_version,
                     formatted: null,
                     resultedFileName: null,
                 });
                 formattedDocument.formatted = await this.setMainBookmarks(formattedDocument.formatted, bookmarks);
+                formattedDocument.formatted = await this.setOldVersion(formattedDocument.old_version, formattedDocument.formatted);
             }
         }
 
@@ -129,6 +145,28 @@ export default class DocumentParser {
                 reject(error);
             }
         });
+    }
+
+    public async setOldVersion(oldVersion: number, $: CheerioStatic): Promise<CheerioStatic> {
+        try {
+            console.log('setOldVersion')
+            let str = $.xml();
+            const endIndex = str.indexOf('<w:body>') + '<w:body>'.length;
+            str = str.slice(0, endIndex) +
+                '<w:p>' +
+                '<w:r>' +
+                '<w:rPr>' +
+                '<w:lang w:val="ru-RU"/>' +
+                '</w:rPr>' +
+                `<w:t>Старая версия ${process.env.APP_URL}/documents/${oldVersion}</w:t>` +
+                '</w:r>' +
+                '</w:p>' +
+                str.slice(endIndex);
+            return cheerio.load(str, cheerioOptions);
+        } catch (error) {
+            console.log(error);
+            throw error;
+        }
     }
 
     public async setProps(document: Document, props: BodyDocumentPropertyDto): Promise<void> {
@@ -243,7 +281,7 @@ export default class DocumentParser {
     private async setChildBody(formattedDocument: CheerioStatic, childBody: Cheerio): Promise<CheerioStatic> {
         let str = formattedDocument.xml();
         const endIndex = str.indexOf('</w:body>');
-        str = str.slice(0, endIndex) + '<w:br w:type="page"/>' + childBody.toString() + str.slice(endIndex)
+        str = str.slice(0, endIndex) + '<w:br w:type="page"/>' + childBody.toString() + str.slice(endIndex);
         return await cheerio.load(str, cheerioOptions);
     }
 
