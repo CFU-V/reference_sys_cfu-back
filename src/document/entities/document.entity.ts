@@ -10,7 +10,7 @@ import {
     PrimaryKey,
     ForeignKey,
     AutoIncrement,
-    BelongsTo, BelongsToMany, BeforeUpdate, BeforeCreate, BeforeDestroy, AfterCreate, AfterUpdate,
+    BelongsTo, BelongsToMany, BeforeUpdate, BeforeCreate, BeforeDestroy, AfterCreate, AfterUpdate, HasMany,
 } from 'sequelize-typescript';
 import { User } from '../../user/entities/user.entity';
 import { Category } from './category.entity';
@@ -106,8 +106,11 @@ export class Document extends Model<Document> {
     })
     parentId: number;
 
-    @BelongsTo(() => Document)
+    @BelongsTo(() => Document, { onDelete: 'CASCADE' })
     parent: Document;
+
+    @HasMany(() => Document , { onDelete: 'CASCADE' })
+    childs: Document[];
 
     @BelongsTo(() => Category)
     category: Category;
@@ -121,7 +124,7 @@ export class Document extends Model<Document> {
                 await searchIndexing.bulkIndex(DOCUMENT_INDEX, [await this.getDocumentData(document.id)]);
             } else {
                 await searchIndexing.deleteIfExist(DOCUMENT_INDEX, document.id);
-                await searchIndexing.update(DOCUMENT_INDEX, await this.getDocumentData(document.parentId))
+                await searchIndexing.update(DOCUMENT_INDEX, await this.getDocumentData(document.parentId));
             }
         } catch (error) {
             console.log(error);

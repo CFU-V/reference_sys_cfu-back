@@ -41,6 +41,8 @@ export class UpdateDocumentDto {
   visibility: boolean;
   @ApiModelProperty({required: false})
   renew: boolean;
+  @ApiModelProperty({required: true})
+  deleteChilds: boolean;
 }
 
 export class IndexingDocumentDto {

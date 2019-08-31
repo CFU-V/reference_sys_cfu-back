@@ -42,6 +42,7 @@ module.exports = {
           model: 'documents',
           key: 'id'
         },
+        onDelete: 'CASCADE',
         type: Sequelize.BIGINT,
       },
       ownerId: {

@@ -147,6 +147,13 @@ export class DocumentService {
                     Utils.deleteIfExist(oldDoc.link);
                 }
 
+                if (
+                    document.deleteChilds ||
+                    document.deleteChilds.toString() === 'true'
+                ) {
+                    await this.documentRepository.destroy({ where: { parentId: oldDoc.id } });
+                }
+
                 return await oldDoc.update({
                     title: document.title ? document.title : oldDoc.title,
                     ownerId,

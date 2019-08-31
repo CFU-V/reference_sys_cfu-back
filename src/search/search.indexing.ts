@@ -89,6 +89,7 @@ export class SearchIndexing implements OnModuleInit {
             console.log(`Successfully indexed ${JSON.stringify(count)} documents`);
         } catch (error) {
             console.log(error)
+            throw error;
         }
     }
 
@@ -100,7 +101,7 @@ export class SearchIndexing implements OnModuleInit {
                 index,
                 id: item.id,
                 body: updateBody,
-                refresh: true
+                refresh: true,
             });
 
             if (updateResponse.errors) {
