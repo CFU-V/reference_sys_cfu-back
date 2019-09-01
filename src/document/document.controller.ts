@@ -30,6 +30,8 @@ import { DocumentPropertyDto } from './dto/document.property.dto';
 import { BodyDocumentPropertyDto } from './dto/document.body.property.dto';
 import logger from '../core/logger';
 import { GetDocumentDto } from './dto/deocument.get.dto';
+import { DocumentSrhareDto } from './dto/document.srhare.dto';
+import { DOCX_CONTENT_TYPE } from '../common/constants';
 
 @ApiUseTags('document')
 @ApiBearerAuth()
@@ -76,6 +78,23 @@ export class DocumentController {
             logger.info(`ADD_DOCUMENT, : {user_id: ${req.user.id} }, document: ${JSON.stringify(document)}`);
         } catch (error) {
             Utils.deleteIfExist(file.path);
+            return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ error: error.message });
+        }
+    }
+
+    @Post('/share')
+    @UseGuards(AuthGuard('staff'))
+    @ApiResponse({ status: 200, description: 'Mail sent.' })
+    @ApiOperation({title: 'Share a documents.'})
+    async shareDocument(
+      @Res() res,
+      @Request() req,
+      @Body() mailInfo: DocumentSrhareDto,
+    ) {
+        try {
+            const response = await this.documentService.shareDocument(req.user, mailInfo);
+            res.status(HttpStatus.OK).json(response);
+        } catch (error) {
             return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ error: error.message });
         }
     }
@@ -149,7 +168,7 @@ export class DocumentController {
     }
 
     @Get('/download/:id')
-    @Header('Content-type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document')
+    @Header('Content-type', DOCX_CONTENT_TYPE)
     @ApiResponse({ status: 200, description: '' })
     @ApiOperation({title: 'Download document.'})
     async downloadDocument(

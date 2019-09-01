@@ -10,17 +10,21 @@ import { buildDocumentTree } from '../core/TreeBuilder';
 import { DocumentRecursiveDto } from './dto/document.tree.dto';
 import Utils from '../core/Utils';
 import * as path from 'path';
-import { DOCX_TPM_FOLDER_PATH } from '../common/constants';
+import { mailService } from '../core/MailService';
+import { DOCX_TPM_FOLDER_PATH, SHARING_METHOD } from '../common/constants';
 import { DocumentPropertyDto } from './dto/document.property.dto';
 import { GetDocumentDto } from './dto/deocument.get.dto';
 import { Bookmark } from '../bookmarks/entities/bookmark.entity';
 import { BodyDocumentPropertyDto } from './dto/document.body.property.dto';
+import { DocumentSrhareDto } from './dto/document.srhare.dto';
+import { User } from '../user/entities/user.entity';
 
 @Injectable()
 export class DocumentService {
     constructor(
         @Inject('DocumentRepository') private readonly documentRepository: typeof Document,
         @Inject('BookmarkRepository') private readonly bookmarkRepository: typeof Bookmark,
+        @Inject('UserRepository') private readonly userRepository: typeof User,
     ) {}
 
     async addDocument(ownerId: number, filePath: string, document: DocumentDto) {
@@ -168,6 +172,44 @@ export class DocumentService {
             await documentParser.setProps(document, props);
         } else {
             throw new HttpException(`Document with id ${props.id} dosen't exist`, 404);
+        }
+    }
+
+    async shareDocument(user: any, mailInfo: DocumentSrhareDto): Promise<any> {
+        try {
+            const document = await this.documentRepository.findOne({ where: { id: mailInfo.documentId } });
+
+            if (document) {
+                const fileName = path.basename(document.link);
+                const filePath = path.resolve(__dirname, `${DOCX_TPM_FOLDER_PATH}/${fileName}`);
+                if (fs.existsSync(filePath)) {
+                    const sender = await this.userRepository.findOne({ where: { id: user.id }});
+                    return await mailService.sendUserMail(
+                        mailInfo.recipientMail,
+                        `${sender.lastName} ${sender.firstName} ${sender.surName}`,
+                        SHARING_METHOD,
+                        mailInfo.message,
+                        filePath,
+                        Utils.fileNameTemplate(document.title),
+                    );
+                } else {
+                    await this.getDocument(document.id, user);
+                    const sender = await this.userRepository.findOne({ where: { id: user.id }});
+                    return await mailService.sendUserMail(
+                        mailInfo.recipientMail,
+                        `${sender.lastName} ${sender.firstName} ${sender.surName}`,
+                        SHARING_METHOD,
+                        mailInfo.message,
+                        filePath,
+                        Utils.fileNameTemplate(document.title),
+                    );
+                }
+            } else {
+                throw new HttpException(`Document with id ${mailInfo.documentId} dosen't exist`, HttpStatus.NOT_FOUND);
+            }
+        } catch (error) {
+            console.log(error);
+            throw error;
         }
     }
 

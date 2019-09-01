@@ -19,4 +19,8 @@ export default class Utils {
   public static prettify(str: string): string {
     return str.trim().replace(/\s|\s+/g, '');
   }
+
+  public static fileNameTemplate(str: string): string {
+    return str.trim().replace(/\s|\s+/g, '_') + '.docx';
+  }
 }

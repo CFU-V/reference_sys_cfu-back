@@ -50,3 +50,14 @@ export const LOG_FILENAME_PATTERN: RegExp = /^logs-[0-9]{4}-[0-9]{2}-[0-9]{2}.lo
 export const DOCUMENT_INDEX: string = 'documents';
 export const ALL_INDEX: string = '_all';
 export const TOKENIZE_REGEXP: RegExp = /[a-zА-Я0-9]/gi;
+/*
+    Mail service.
+ */
+export const SHARING_METHOD = 'sharing';
+export const GMAIL_SERVICE = 'gmail';
+export const OAUTH2_TYPE = 'OAuth2';
+
+/*
+    ContentTypes
+ */
+export const DOCX_CONTENT_TYPE = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';

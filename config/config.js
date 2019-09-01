@@ -11,6 +11,13 @@ module.exports = {
         define: {
             underscored: true
         },
+        smtp: {
+            ClientId: process.env.SMTP_CLIENT_ID,
+            ClientSecret: process.env.SMTP_CLIENT_SECRET,
+            Url: process.env.SMTP_REDIRECT_URL,
+            refresh_token: process.env.SMTP_REFRESH_TOKEN,
+            smtpUser: process.env.SMTP_USER
+        },
     },
     test: {
         database: process.env.DB_NAME,
@@ -22,6 +29,13 @@ module.exports = {
         define: {
             underscored: true
         },
+        smtp: {
+            ClientId: process.env.SMTP_CLIENT_ID,
+            ClientSecret: process.env.SMTP_CLIENT_SECRET,
+            Url: process.env.SMTP_REDIRECT_URL,
+            refresh_token: process.env.SMTP_REFRESH_TOKEN,
+            smtpUser: process.env.SMTP_USER
+        },
     },
     production: {
         database: process.env.DB_NAME,
@@ -32,6 +46,13 @@ module.exports = {
         dialect: process.env.DB_DIALECT,
         define: {
             underscored: true
+        },
+        smtp: {
+            ClientId: process.env.SMTP_CLIENT_ID,
+            ClientSecret: process.env.SMTP_CLIENT_SECRET,
+            Url: process.env.SMTP_REDIRECT_URL,
+            refresh_token: process.env.SMTP_REFRESH_TOKEN,
+            smtpUser: process.env.SMTP_USER
         },
     },
 }
