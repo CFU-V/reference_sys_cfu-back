@@ -18,6 +18,8 @@ import { Bookmark } from '../bookmarks/entities/bookmark.entity';
 import { BodyDocumentPropertyDto } from './dto/document.body.property.dto';
 import { DocumentSrhareDto } from './dto/document.srhare.dto';
 import { User } from '../user/entities/user.entity';
+import { DocumentNewsDto } from './dto/document.news.dto';
+import * as moment from 'moment';
 
 @Injectable()
 export class DocumentService {
@@ -162,6 +164,42 @@ export class DocumentService {
         }
 
         return documentProps;
+    }
+
+    async getDocumentNews(user: any): Promise<DocumentNewsDto> {
+        const whereCreated = {
+                createdAt: {
+                    [Op.gte]: moment().subtract(7, 'days').toDate(),
+                },
+            };
+
+        if (user) {
+            whereCreated['visibility'] = true;
+        }
+
+        const created = await this.documentRepository.findAll({ where: whereCreated });
+        const createdIds = [];
+
+        for (const create of created) {
+            createdIds.push(create.id);
+        }
+        const whereUpdated = {
+                updatedAt: {
+                    [Op.gte]: moment().subtract(7, 'days').toDate(),
+                },
+            };
+
+        if (user) {
+            whereUpdated['visibility'] = true;
+        }
+
+        const updated = await this.documentRepository.findAll({ where: whereUpdated });
+        return {
+            created,
+            updated: await updated.filter((el) => {
+                return moment(el.createdAt).format('MMMM Do YYYY, h:mm:ss') !== moment(el.updatedAt).format('MMMM Do YYYY, h:mm:ss');
+            }),
+        };
     }
 
     async setDocumentProps(props: BodyDocumentPropertyDto): Promise<void> {

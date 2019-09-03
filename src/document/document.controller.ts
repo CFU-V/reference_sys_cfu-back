@@ -32,6 +32,7 @@ import logger from '../core/logger';
 import { GetDocumentDto } from './dto/deocument.get.dto';
 import { DocumentSrhareDto } from './dto/document.srhare.dto';
 import { DOCX_CONTENT_TYPE } from '../common/constants';
+import { DocumentNewsDto } from './dto/document.news.dto';
 
 @ApiUseTags('document')
 @ApiBearerAuth()
@@ -174,7 +175,7 @@ export class DocumentController {
     async downloadDocument(
         @Res() res,
         @Request() req,
-        @Param('id') id: number
+        @Param('id') id: number,
     ) {
         try {
             const user = await this.userService.verifyByToken(req.headers.authorization);
@@ -209,6 +210,23 @@ export class DocumentController {
             }
 
             return res.status(HttpStatus.OK).json(documentProps);
+        } catch (error) {
+            console.log(error);
+            return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ error });
+        }
+    }
+
+    @Get('/news')
+    @ApiResponse({ status: 200, description: '', type: DocumentNewsDto })
+    @ApiOperation({title: 'Get document news for 7 days.'})
+    async getDocumentNews(
+        @Res() res,
+        @Request() req,
+    ) {
+        try {
+            const user = await this.userService.verifyByToken(req.headers.authorization);
+            const news = await this.documentService.getDocumentNews(user);
+            return res.status(HttpStatus.OK).json(news);
         } catch (error) {
             console.log(error);
             return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ error });
