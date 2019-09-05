@@ -173,7 +173,7 @@ export class DocumentService {
                 },
             };
 
-        if (user) {
+        if (!user) {
             whereCreated['visibility'] = true;
         }
 
@@ -189,7 +189,7 @@ export class DocumentService {
                 },
             };
 
-        if (user) {
+        if (!user) {
             whereUpdated['visibility'] = true;
         }
 
