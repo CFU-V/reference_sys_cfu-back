@@ -1,7 +1,7 @@
 module.exports = {
   apps : [{
     name: 'CFU Reference API',
-    script: 'dist/main.js',
+    script: 'dist/src/main.js',
     args: null,
     instances: 3,
     autorestart: true,
