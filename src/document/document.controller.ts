@@ -79,7 +79,10 @@ export class DocumentController {
             logger.info(`ADD_DOCUMENT, : {user_id: ${req.user.id} }, document: ${JSON.stringify(document)}`);
         } catch (error) {
             Utils.deleteIfExist(file.path);
-            return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ error: error.message });
+            if (error.message) {
+                return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ error: error.message });
+            }
+            return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ error: error });
         }
     }
 

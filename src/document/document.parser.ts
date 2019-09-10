@@ -31,26 +31,78 @@ export default class DocumentParser {
     }
 
     public async formatLite(documentsTree: DocumentTreeDto): Promise<FormattedDocumentDto> {
-        const zip = new Zip(documentsTree.link);
-        const formattedDocument: FormattedDocumentDto = {
-            id: documentsTree.id,
-            link: documentsTree.link,
-            parentId: documentsTree.parentId,
-            old_version: documentsTree.old_version,
-            level: documentsTree.level,
-            formatted: await cheerio.load(zip.readAsText(DOCX_XML_PATH), cheerioOptions),
-            resultedFileName: null,
-        };
-        zip.deleteFile(DOCX_XML_PATH);
+        try {
+            const zip = new Zip(documentsTree.link);
+            const formattedDocument: FormattedDocumentDto = {
+                id: documentsTree.id,
+                link: documentsTree.link,
+                parentId: documentsTree.parentId,
+                old_version: documentsTree.old_version,
+                level: documentsTree.level,
+                formatted: await cheerio.load(zip.readAsText(DOCX_XML_PATH), cheerioOptions),
+                resultedFileName: null,
+            };
+            zip.deleteFile(DOCX_XML_PATH);
 
-        if (documentsTree.childrens.length > 0) {
+            if (documentsTree.childrens.length > 0) {
+                for (const child of documentsTree.childrens) {
+                    if (child.childrens.length > 0) {
+                        const resultedChild: FormattedDocumentDto = await this.formatLite(child);
+                        const childBody = await this.getChildBody(resultedChild);
+                        formattedDocument.formatted = await this.setChildBody(formattedDocument.formatted, childBody);
+                    } else {
+                        const childBody = await this.getChildBody({
+                            id: child.id,
+                            parentId: child.parentId,
+                            level: child.level,
+                            link: child.link,
+                            old_version: child.old_version,
+                            formatted: null,
+                            resultedFileName: null,
+                        });
+                        formattedDocument.formatted = await this.setChildBody(formattedDocument.formatted, childBody);
+                        if (formattedDocument.old_version) {
+                            formattedDocument.formatted = await this.setOldVersion(formattedDocument.old_version, formattedDocument.formatted);
+                            formattedDocument.old_version = null;
+                        }
+                    }
+                }
+            } else {
+                if (formattedDocument.old_version) {
+                    formattedDocument.formatted = await this.setOldVersion(formattedDocument.old_version, formattedDocument.formatted);
+                    formattedDocument.old_version = null;
+                }
+            }
+
+            formattedDocument.resultedFileName = await this.saveDocx(zip, formattedDocument.formatted, documentsTree);
+            return formattedDocument;
+        } catch (error) {
+            console.log(error);
+            throw error;
+        }
+    }
+
+    public async format(documentsTree: DocumentTreeDto): Promise<FormattedDocumentDto> {
+        try {
+            const zip = new Zip(documentsTree.link);
+            const formattedDocument: FormattedDocumentDto = {
+                id: documentsTree.id,
+                link: documentsTree.link,
+                parentId: documentsTree.parentId,
+                old_version: documentsTree.old_version,
+                level: documentsTree.level,
+                formatted: await cheerio.load(zip.readAsText(DOCX_XML_PATH), cheerioOptions),
+                resultedFileName: null,
+            };
+            zip.deleteFile(DOCX_XML_PATH);
+
             for (const child of documentsTree.childrens) {
                 if (child.childrens.length > 0) {
-                    const resultedChild: FormattedDocumentDto = await this.formatLite(child);
-                    const childBody = await this.getChildBody(resultedChild);
-                    formattedDocument.formatted = await this.setChildBody(formattedDocument.formatted, childBody);
+                    const resultedChild: FormattedDocumentDto = await this.format(child);
+                    const bookmarks: Array<BookmarkData> = await this.getChildBookmarks(resultedChild);
+                    formattedDocument.formatted = await this.setMainBookmarks(formattedDocument.formatted, bookmarks);
                 } else {
-                    const childBody = await this.getChildBody({
+                    const bookmarks: Array<BookmarkData> = await this.getChildBookmarks({
                         id: child.id,
                         parentId: child.parentId,
                         level: child.level,
@@ -59,59 +111,17 @@ export default class DocumentParser {
                         formatted: null,
                         resultedFileName: null,
                     });
-                    formattedDocument.formatted = await this.setChildBody(formattedDocument.formatted, childBody);
-                    if (formattedDocument.old_version) {
-                        formattedDocument.formatted = await this.setOldVersion(formattedDocument.old_version, formattedDocument.formatted);
-                        formattedDocument.old_version = null;
-                    }
+                    formattedDocument.formatted = await this.setMainBookmarks(formattedDocument.formatted, bookmarks);
+                    formattedDocument.formatted = await this.setOldVersion(formattedDocument.old_version, formattedDocument.formatted);
                 }
             }
-        } else {
-            if (formattedDocument.old_version) {
-                formattedDocument.formatted = await this.setOldVersion(formattedDocument.old_version, formattedDocument.formatted);
-                formattedDocument.old_version = null;
-            }
+
+            formattedDocument.resultedFileName = await this.saveDocx(zip, formattedDocument.formatted, documentsTree);
+            return formattedDocument;
+        } catch (error) {
+            console.log(error);
+            throw error;
         }
-
-        formattedDocument.resultedFileName = await this.saveDocx(zip, formattedDocument.formatted, documentsTree);
-        return formattedDocument;
-    }
-
-    public async format(documentsTree: DocumentTreeDto): Promise<FormattedDocumentDto> {
-        const zip = new Zip(documentsTree.link);
-        const formattedDocument: FormattedDocumentDto = {
-            id: documentsTree.id,
-            link: documentsTree.link,
-            parentId: documentsTree.parentId,
-            old_version: documentsTree.old_version,
-            level: documentsTree.level,
-            formatted: await cheerio.load(zip.readAsText(DOCX_XML_PATH), cheerioOptions),
-            resultedFileName: null,
-        };
-        zip.deleteFile(DOCX_XML_PATH);
-
-        for (const child of documentsTree.childrens) {
-            if (child.childrens.length > 0) {
-                const resultedChild: FormattedDocumentDto = await this.format(child);
-                const bookmarks: Array<BookmarkData> = await this.getChildBookmarks(resultedChild);
-                formattedDocument.formatted = await this.setMainBookmarks(formattedDocument.formatted, bookmarks);
-            } else {
-                const bookmarks: Array<BookmarkData> = await this.getChildBookmarks({
-                    id: child.id,
-                    parentId: child.parentId,
-                    level: child.level,
-                    link: child.link,
-                    old_version: child.old_version,
-                    formatted: null,
-                    resultedFileName: null,
-                });
-                formattedDocument.formatted = await this.setMainBookmarks(formattedDocument.formatted, bookmarks);
-                formattedDocument.formatted = await this.setOldVersion(formattedDocument.old_version, formattedDocument.formatted);
-            }
-        }
-
-        formattedDocument.resultedFileName = await this.saveDocx(zip, formattedDocument.formatted, documentsTree);
-        return formattedDocument;
     }
 
     public async extract(docPath: string, documentsTree: DocumentTreeDto): Promise<string> {
@@ -125,7 +135,6 @@ export default class DocumentParser {
                 });
             });
         } catch (error) {
-            console.log(error);
             throw error;
         }
     }
@@ -141,7 +150,6 @@ export default class DocumentParser {
                 }
                 resolve(propJson);
             } catch (error) {
-                console.log(error);
                 reject(error);
             }
         });
@@ -164,7 +172,6 @@ export default class DocumentParser {
                 str.slice(endIndex);
             return cheerio.load(str, cheerioOptions);
         } catch (error) {
-            console.log(error);
             throw error;
         }
     }
@@ -199,7 +206,6 @@ export default class DocumentParser {
                 await this.saveDocumentProperty($, document);
                 resolve();
             } catch (error) {
-                console.log(error);
                 reject(error);
             }
         });
@@ -366,7 +372,6 @@ export default class DocumentParser {
         try {
             return path.resolve(__dirname, `${DOCX_TPM_FOLDER_PATH}/${path.basename(docPath)}`);
         } catch (error) {
-            console.log(error);
             throw error;
         }
     }

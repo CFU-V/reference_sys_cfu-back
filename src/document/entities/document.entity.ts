@@ -141,6 +141,7 @@ export class Document extends Model<Document> {
             }
         } catch (error) {
             console.log(error);
+            await document.destroy();
             throw error;
         }
     }
@@ -152,6 +153,7 @@ export class Document extends Model<Document> {
             await searchIndexing.deleteIfExist(DOCUMENT_INDEX, document.id);
         } catch (error) {
             console.log(error);
+            throw error;
         }
     }
 
