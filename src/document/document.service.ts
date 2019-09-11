@@ -251,12 +251,12 @@ export class DocumentService {
         }
     }
 
-    async downloadDocument(id: number, user: any) {
+    async downloadDocument(id: number, user?: any) {
         const whereOpt = { id };
 
-        if (!user) {
-            whereOpt['visibility'] = true;
-        }
+        // if (!user) {
+        //     whereOpt['visibility'] = true;
+        // }
 
         const document = await this.documentRepository.findOne({where: whereOpt });
         if (document) {

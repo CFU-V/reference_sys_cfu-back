@@ -67,7 +67,7 @@ export class MailService {
                     };
 
                     templates.render(
-                        path.resolve(__dirname + `/templates/${templateName}.html`),
+                        path.resolve(`${process.env.TEMPLATE_DIR}/${templateName}.html`),
                         context,
                         (err, html) => {
                             const mailOptions = {

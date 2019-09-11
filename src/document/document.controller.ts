@@ -181,8 +181,8 @@ export class DocumentController {
         @Param('id') id: number,
     ) {
         try {
-            const user = await this.userService.verifyByToken(req.headers.authorization);
-            return (await this.documentService.downloadDocument(id, user)).pipe(res);
+            //const user = await this.userService.verifyByToken(req.headers.authorization);
+            return (await this.documentService.downloadDocument(id)).pipe(res);
         } catch (error) {
             console.log(error);
             res.setHeader('Content-type', 'application/json');
