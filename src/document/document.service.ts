@@ -60,7 +60,7 @@ export class DocumentService {
                 for (const recursiveDocument of documents) {
                     values.push([
                         recursiveDocument.id,
-                        recursiveDocument.title,
+                        `${recursiveDocument.title}_${recursiveDocument.id}_устаревший`,
                         recursiveDocument.ownerId,
                         recursiveDocument.info,
                         recursiveDocument.categoryId,
@@ -78,7 +78,7 @@ export class DocumentService {
                     '"categoryId", link, "parentId", ' +
                     'old_version, number, visibility, renew, active) VALUES ' +
                     values.map(_ => '(?)').join(',') +
-                    ' ON CONFLICT (id) DO UPDATE SET active = excluded.active;';
+                    ' ON CONFLICT (id) DO UPDATE SET active = excluded.active, title = excluded.title;';
 
                 await this.documentRepository.sequelize.query({ query, values }, { type: QueryTypes.INSERT });
             }
