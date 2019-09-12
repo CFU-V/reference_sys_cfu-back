@@ -21,6 +21,7 @@ import DocumentParser from '../document.parser';
 import {DocumentRecursiveDto} from '../dto/document.tree.dto';
 import {QueryTypes} from 'sequelize';
 import { buildDocumentTree } from '../../core/TreeBuilder';
+import {Bookmark} from "../../bookmarks/entities/bookmark.entity";
 
 @Table({
     timestamps: true,
@@ -124,6 +125,9 @@ export class Document extends Model<Document> {
 
     @HasMany(() => Document , { onDelete: 'CASCADE' })
     childs: Document[];
+
+    @HasMany(() => Bookmark , { onDelete: 'CASCADE' })
+    bookmarks: Bookmark[];
 
     @BelongsTo(() => Category)
     category: Category;

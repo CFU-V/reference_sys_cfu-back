@@ -16,6 +16,7 @@ module.exports = {
           model: 'users',
           key: 'id'
         },
+        onDelete: 'CASCADE',
         type: Sequelize.BIGINT,
       },
       docId: {
@@ -25,6 +26,7 @@ module.exports = {
           model: 'documents',
           key: 'id'
         },
+        onDelete: 'CASCADE',
         type: Sequelize.BIGINT
       },
       control: {

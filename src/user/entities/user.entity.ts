@@ -13,7 +13,7 @@ import {
     AutoIncrement,
     BelongsTo,
     BeforeCreate,
-    BeforeUpdate, BelongsToMany,
+    BeforeUpdate, BelongsToMany, HasMany,
 } from 'sequelize-typescript';
 import * as bcrypt from 'bcrypt';
 import { Role } from './role.entity';
@@ -95,7 +95,7 @@ export class User extends Model<User> {
     @BelongsTo(() => Role)
     role: Role;
 
-    @BelongsToMany(() => Document, () => Bookmark)
+    @HasMany(() => Bookmark, { onDelete: 'CASCADE' })
     bookmarks: Bookmark[];
 
     @BeforeUpdate

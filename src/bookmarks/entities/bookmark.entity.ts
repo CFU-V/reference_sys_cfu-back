@@ -42,9 +42,9 @@ export class Bookmark extends Model<Bookmark> {
     @Column({type: DataType.BOOLEAN})
     control: boolean;
 
-    @BelongsTo(() => Document)
+    @BelongsTo(() => Document, { onDelete: 'CASCADE' })
     document: Document;
 
-    @BelongsTo(() => User)
+    @BelongsTo(() => User, { onDelete: 'CASCADE' })
     user: User;
 }
