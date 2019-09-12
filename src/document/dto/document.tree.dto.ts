@@ -1,6 +1,7 @@
 export class DocumentTreeDto {
     id: number;
     link: string;
+    info: string;
     parentId: number;
     old_version: number;
     level: number;
@@ -12,5 +13,6 @@ export class DocumentRecursiveDto {
     link: string;
     parentId: number;
     old_version: number;
+    info: string;
     level: number;
 }

@@ -129,22 +129,24 @@ export class DocumentService {
 
     async getDocument(id: number, user: any): Promise<GetDocumentDto> {
         const documents: Array<DocumentRecursiveDto> = await this.documentRepository.sequelize.query(
-            'WITH RECURSIVE sub_documents(id, link, old_version, "parentId", level) AS (' +
-            `SELECT id, link, old_version, "parentId", 1 FROM documents WHERE id = :nodeId ${user ? '' : 'AND visibility = :visibility'} ` +
+            'WITH RECURSIVE sub_documents(id, link, old_version, "parentId", info, level) AS (' +
+            `SELECT id, link, old_version, "parentId", info, 1 FROM documents WHERE id = :nodeId ${user ? '' : 'AND visibility = :visibility'} ` +
             'UNION ALL ' +
-            'SELECT d.id, d.link, d.old_version, d."parentId", level+1 ' +
+            'SELECT d.id, d.link, d.old_version, d."parentId", d.info, level+1 ' +
             'FROM documents d, sub_documents sd ' +
             'WHERE d."parentId" = sd.id) ' +
-            'SELECT id, link, old_version, "parentId", level FROM sub_documents ORDER BY level ASC, id ASC;',
+            'SELECT id, link, old_version, "parentId", info, level FROM sub_documents ORDER BY level ASC, id ASC;',
             {replacements: { nodeId: id, visibility: true }, type: QueryTypes.SELECT, mapToModel: true });
 
         if (documents.length > 0) {
             const response: GetDocumentDto = {
                 fileName: '',
+                info: '',
             };
             const documentParser = new DocumentParser();
             const resultDocument: FormattedDocumentDto = await documentParser.formatLite(await buildDocumentTree(documents, id));
             response.fileName = resultDocument.resultedFileName;
+            response.info = resultDocument.info;
             if (user) {
                 response.bookmarks =  await this.bookmarkRepository.findOne({ where: { userId: user.id, docId: id } });
             }

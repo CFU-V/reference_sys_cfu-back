@@ -111,6 +111,7 @@ export class IndexedDocumentDto {
 export class FormattedDocumentDto {
   id: number;
   link: string;
+  info: string;
   parentId: number;
   old_version: number;
   level: number;

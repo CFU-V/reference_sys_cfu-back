@@ -36,13 +36,13 @@ export class Document extends Model<Document> {
 
     @AllowNull(false)
     @Column({
-        type: DataType.STRING(256),
+        type: DataType.STRING(1500),
         unique: true,
     })
     title: string;
 
     @AllowNull(false)
-    @Column({type: DataType.STRING(6000)})
+    @Column({type: DataType.STRING(10000)})
     info: string;
 
     @ForeignKey(() => Category)
@@ -70,11 +70,11 @@ export class Document extends Model<Document> {
     visibility: boolean;
 
     @AllowNull(false)
-    @Column({type: DataType.STRING(1024)})
+    @Column({type: DataType.STRING(2048)})
     link: string;
 
     @AllowNull(true)
-    @Column({type: DataType.STRING(1024)})
+    @Column({type: DataType.STRING(2048)})
     consultant_link: string;
 
     @AllowNull(true)

@@ -11,12 +11,12 @@ module.exports = {
       },
       title: {
         allowNull: false,
-        type: Sequelize.STRING(256),
+        type: Sequelize.STRING(1500),
         unique: true
       },
       info: {
         allowNull: false,
-        type: Sequelize.STRING(6000),
+        type: Sequelize.STRING(10000),
       },
       categoryId: {
         allowNull: false,
@@ -55,11 +55,11 @@ module.exports = {
       },
       link: {
         allowNull: false,
-        type: Sequelize.Sequelize.STRING(1024),
+        type: Sequelize.Sequelize.STRING(2048),
       },
       consultant_link: {
         allowNull: true,
-        type: Sequelize.Sequelize.STRING(1024),
+        type: Sequelize.Sequelize.STRING(2048),
       },
       renew: {
         allowNull: true,

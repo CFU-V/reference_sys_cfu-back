@@ -14,28 +14,30 @@ import { FormattedDocumentDto } from './dto/document.dto';
 import * as textract from 'textract';
 import Utils from '../core/Utils';
 import * as fsxml from 'fast-xml-parser';
-import * as xml2js from 'xml2js';
 import { Document } from './entities/document.entity';
-import { errorObject } from 'rxjs/internal-compatibility';
-import { DocumentPropertyDto } from './dto/document.property.dto';
 import { HttpException } from '@nestjs/common';
 import { BodyDocumentPropertyDto } from './dto/document.body.property.dto';
+import * as fs from "fs";
+import {IMedia} from "./interfaces/media.interface";
 
 const cheerioOptions = {decodeEntities: false, xmlMode: true, normalizeTags: true, normalizeWhitespace: true};
 
 export default class DocumentParser {
     private xmlParser: convert.Parser;
+    private media: Array<IMedia>;
 
     constructor() {
         this.xmlParser = new convert.Parser();
+        this.media = [];
     }
 
     public async formatLite(documentsTree: DocumentTreeDto): Promise<FormattedDocumentDto> {
         try {
-            const zip = new Zip(documentsTree.link);
+            let zip = new Zip(documentsTree.link);
             const formattedDocument: FormattedDocumentDto = {
                 id: documentsTree.id,
                 link: documentsTree.link,
+                info: documentsTree.info,
                 parentId: documentsTree.parentId,
                 old_version: documentsTree.old_version,
                 level: documentsTree.level,
@@ -48,13 +50,16 @@ export default class DocumentParser {
                 for (const child of documentsTree.childrens) {
                     if (child.childrens.length > 0) {
                         const resultedChild: FormattedDocumentDto = await this.formatLite(child);
+                        //await this.getChildMedia(child.link);
                         const childBody = await this.getChildBody(resultedChild);
                         formattedDocument.formatted = await this.setChildBody(formattedDocument.formatted, childBody);
                     } else {
+                        //await this.getChildMedia(child.link);
                         const childBody = await this.getChildBody({
                             id: child.id,
                             parentId: child.parentId,
                             level: child.level,
+                            info: child.info,
                             link: child.link,
                             old_version: child.old_version,
                             formatted: null,
@@ -74,6 +79,7 @@ export default class DocumentParser {
                 }
             }
 
+            //zip = await this.setMedia(zip);
             formattedDocument.resultedFileName = await this.saveDocx(zip, formattedDocument.formatted, documentsTree);
             return formattedDocument;
         } catch (error) {
@@ -88,6 +94,7 @@ export default class DocumentParser {
             const formattedDocument: FormattedDocumentDto = {
                 id: documentsTree.id,
                 link: documentsTree.link,
+                info: documentsTree.info,
                 parentId: documentsTree.parentId,
                 old_version: documentsTree.old_version,
                 level: documentsTree.level,
@@ -107,6 +114,7 @@ export default class DocumentParser {
                         parentId: child.parentId,
                         level: child.level,
                         link: child.link,
+                        info: child.info,
                         old_version: child.old_version,
                         formatted: null,
                         resultedFileName: null,
@@ -149,6 +157,50 @@ export default class DocumentParser {
                     propJson[PROPERTY_FIELDS[propSelector]] = $(propSelector).text();
                 }
                 resolve(propJson);
+            } catch (error) {
+                reject(error);
+            }
+        });
+    }
+
+    public async getChildMedia(link: string): Promise<void> {
+        return new Promise(async (resolve, reject) => {
+            try {
+                const zip = new Zip(link);
+                zip.extractAllTo(path.resolve(__dirname, 'tmp/zip'));
+
+                if (fs.existsSync(path.resolve(__dirname, 'tmp/zip/word/media'))) {
+                    const files = fs.readdirSync(path.resolve(__dirname, 'tmp/zip/word/media'));
+
+                    for (const file of files) {
+                        this.media.push(
+                            {
+                                name: file,
+                                buffer: fs.readFileSync(path.resolve(__dirname, `tmp/zip/word/media/${file}`)),
+                            }
+                        );
+                    }
+                }
+
+                resolve();
+            } catch (error) {
+                reject(error);
+            }
+        });
+    }
+
+    public async setMedia(zip: Zip): Promise<Zip> {
+        return new Promise(async (resolve, reject) => {
+            try {
+                for (const file of this.media) {
+                    console.log(this.media.length);
+                    zip.addFile(`word/media/${file.name}`, file.buffer);
+                }
+                const entr = zip.getEntries();
+                for (const en of entr) {
+                    console.log(en.entryName)
+                }
+                resolve(zip);
             } catch (error) {
                 reject(error);
             }
