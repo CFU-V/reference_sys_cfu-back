@@ -140,7 +140,8 @@ export class Document extends Model<Document> {
             if (!document.parentId) {
                 await searchIndexing.bulkIndex(DOCUMENT_INDEX, [await this.getDocumentData(document.id)]);
             } else {
-                await searchIndexing.deleteIfExist(DOCUMENT_INDEX, document.id);
+                await searchIndexing.deleteIfExist(DOCUMENT_INDEX, [document.id]);
+                await searchIndexing.bulkIndex(DOCUMENT_INDEX, [await this.getDocumentData(document.id)]);
                 await searchIndexing.update(DOCUMENT_INDEX, await this.getDocumentData(document.parentId));
             }
         } catch (error) {
@@ -154,7 +155,17 @@ export class Document extends Model<Document> {
     static async _deleteIndex(document: Document) {
         try {
             const searchIndexing = new SearchIndexing(Document);
-            await searchIndexing.deleteIfExist(DOCUMENT_INDEX, document.id);
+            const documents: DocumentRecursiveDto[] = await this.sequelize.query(
+                'WITH RECURSIVE sub_documents(id, link, "parentId", level) AS (' +
+                `SELECT id, link, "parentId", 1 FROM documents WHERE id = :nodeId ` +
+                'UNION ALL ' +
+                'SELECT d.id, d.link, d."parentId", level+1 ' +
+                'FROM documents d, sub_documents sd ' +
+                'WHERE d."parentId" = sd.id) ' +
+                'SELECT id, link, "parentId", level FROM sub_documents ORDER BY level ASC, id ASC;',
+                {replacements: { nodeId: document.id }, type: QueryTypes.SELECT, mapToModel: true });
+            const ids = documents.map(doc => doc.id);
+            await searchIndexing.deleteIfExist(DOCUMENT_INDEX, ids);
         } catch (error) {
             console.log(error);
             throw error;
@@ -168,7 +179,7 @@ export class Document extends Model<Document> {
                 include: [{model: Category, as: 'category', attributes: ['title']}],
             });
 
-            let documents: Array<DocumentRecursiveDto> = await this.sequelize.query(
+            const documents: DocumentRecursiveDto[] = await this.sequelize.query(
                 'WITH RECURSIVE sub_documents(id, link, "parentId", level) AS (' +
                 `SELECT id, link, "parentId", 1 FROM documents WHERE id = :nodeId ` +
                 'UNION ALL ' +
@@ -177,9 +188,9 @@ export class Document extends Model<Document> {
                 'WHERE d."parentId" = sd.id) ' +
                 'SELECT id, link, "parentId", level FROM sub_documents ORDER BY level ASC, id ASC;',
                 {replacements: { nodeId: id }, type: QueryTypes.SELECT, mapToModel: true });
-
+            console.log(documents);
             const documentParser = new DocumentParser();
-            doc.setDataValue('text', await documentParser.extract(doc.link, await buildDocumentTree(documents, id)));
+            doc.setDataValue('text', await documentParser.extract(doc, await buildDocumentTree(documents, id)));
 
             return await Map.documents(doc.get({ plain: true }));
         } catch (error) {

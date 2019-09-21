@@ -146,10 +146,12 @@ export class SearchIndexing implements OnModuleInit {
         })
     }
 
-    async deleteIfExist(index: string, id: number) {
-        const { body } = await esClient.exists({index, id});
-        if (body) {
-            await esClient.delete({index, id, refresh: true});
+    async deleteIfExist(index: string, ids: number[]) {
+        for (const id of ids) {
+            const { body } = await esClient.exists({index, id});
+            if (body) {
+                await esClient.delete({index, id, refresh: true});
+            }
         }
     }
 }

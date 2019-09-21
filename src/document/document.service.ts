@@ -128,7 +128,7 @@ export class DocumentService {
     }
 
     async getDocument(id: number, user: any): Promise<GetDocumentDto> {
-        const documents: Array<DocumentRecursiveDto> = await this.documentRepository.sequelize.query(
+        const documents: DocumentRecursiveDto[] = await this.documentRepository.sequelize.query(
             'WITH RECURSIVE sub_documents(id, link, old_version, "parentId", info, level) AS (' +
             `SELECT id, link, old_version, "parentId", info, 1 FROM documents WHERE id = :nodeId ${user ? '' : 'AND visibility = :visibility'} ` +
             'UNION ALL ' +
@@ -144,7 +144,7 @@ export class DocumentService {
                 info: '',
             };
             const documentParser = new DocumentParser();
-            const resultDocument: FormattedDocumentDto = await documentParser.formatLite(await buildDocumentTree(documents, id));
+            const resultDocument: FormattedDocumentDto = await documentParser.format(await buildDocumentTree(documents, id));
             response.fileName = resultDocument.resultedFileName;
             response.info = resultDocument.info;
             if (user) {
