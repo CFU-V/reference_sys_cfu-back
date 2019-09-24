@@ -437,7 +437,6 @@ export default class DocumentMerger {
         NewParagraph = NewParagraph.concat(
             paragraphs.slice(end + 1, paragraphs.length),
         );
-        console.log(JSON.stringify(NewParagraph));
         return NewParagraph;
     }
 
@@ -456,23 +455,7 @@ export default class DocumentMerger {
         ) {
             return paragraph;
         }
-        console.log(JSON.stringify(paragraph));
-        console.log(JSON.stringify(otherParagraph));
         paragraph['w:r'] = otherParagraph['w:r'];
-        '<w:hyperlink r:id="rId8" w:history="1">' +
-        '<w:r w:rsidR="00E6710E" w:rsidRPr="00E6710E">' +
-        '<w:rPr>' +
-        '<w:rStyle w:val="a4"/>' +
-        '<w:lang w:val="ru-RU"/>' +
-        '</w:rPr>' +
-        '<w:t>добавил линк</w:t>' +
-        '</w:r>' +
-        '</w:hyperlink>'
-        paragraph['w:r'].push(
-            {
-                '$': { 'w:rsidRPr': '00E049B3' },
-                'w:t': [ ' Последние изменения были сделаны в http://www.serega.com/ssd/8' ],
-            });
         return paragraph;
     }
 }
