@@ -17,7 +17,7 @@ export class Map {
             visibility: document.visibility,
             active: document.active.toString(),
             consultant_link: document.consultant_link,
-            number: Utils.prettify(document.number),
+            number: Utils.prettifyDocumentNumber(document.number),
             renew: document.renew.toString(),
             registeredAt: await this.getRegisteredDataString(document.link),
             ownerId: document.ownerId,

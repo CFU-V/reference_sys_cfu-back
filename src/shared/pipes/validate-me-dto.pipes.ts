@@ -4,6 +4,7 @@ import { PipeTransform, Injectable, ArgumentMetadata } from '@nestjs/common';
 export class ValidateMeDtoPipes implements PipeTransform<string> {
     async transform(value: any, metadata: ArgumentMetadata) {
         return {
+            login: value.login,
             password: value.password,
             phone: value.phone,
             lastName: value.lastName,

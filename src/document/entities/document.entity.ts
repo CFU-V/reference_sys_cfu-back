@@ -188,7 +188,6 @@ export class Document extends Model<Document> {
                 'WHERE d."parentId" = sd.id) ' +
                 'SELECT id, link, "parentId", level FROM sub_documents ORDER BY level ASC, id ASC;',
                 {replacements: { nodeId: id }, type: QueryTypes.SELECT, mapToModel: true });
-            console.log(documents);
             const documentParser = new DocumentParser();
             doc.setDataValue('text', await documentParser.extract(doc, await buildDocumentTree(documents, id)));
 

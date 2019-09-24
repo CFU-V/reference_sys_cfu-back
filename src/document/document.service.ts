@@ -84,14 +84,14 @@ export class DocumentService {
             }
 
             return await this.documentRepository.create({
-                title: document.title,
+                title: Utils.prettifyString(document.title),
                 ownerId,
                 parentId: document.parentId,
                 info: document.info,
                 categoryId: document.categoryId,
                 active: document.active,
                 old_version: document.old_version,
-                number: Utils.prettify(document.number),
+                number: Utils.prettifyDocumentNumber(document.number),
                 visibility: document.visibility,
                 renew: document.renew,
                 link: filePath,
@@ -103,6 +103,7 @@ export class DocumentService {
     }
 
     async getListDocument(user: any, autocomplete?: string, title?: string, page?: number, pageSize?: number) {
+        title = Utils.prettifyString(title);
         page = page > 0 ? page : PAGE;
         pageSize = pageSize > 0 ? pageSize : PAGE_SIZE;
         const offset: number = pageSize * page;
@@ -113,7 +114,49 @@ export class DocumentService {
         }
 
         if (autocomplete === 'true') {
-            where['title'] = {[Op.iLike]: `%${title ? title : ''}%`} ;
+            if (title.indexOf('№') !== -1) {
+                if (title.indexOf('№ ') !== -1) {
+                    where[Op.or] = [
+                        {
+                            title: { [Op.iLike]: `%${title}%` },
+                        },
+                        {
+                            title: { [Op.iLike]: `%${title.replace('№ ', '№')}%` },
+                        },
+                    ];
+                } else {
+                    where[Op.or] = [
+                        {
+                            title: { [Op.iLike]: `%${title}%` },
+                        },
+                        {
+                            title: { [Op.iLike]: `%${title.replace('№', '№ ')}%` },
+                        },
+                    ];
+                }
+            } else if (title.indexOf('#') !== -1) {
+                if (title.indexOf('# ') !== -1) {
+                    where[Op.or] = [
+                        {
+                            title: { [Op.iLike]: `%${title}%` },
+                        },
+                        {
+                            title: { [Op.iLike]: `%${title.replace('# ', '#')}%` },
+                        },
+                    ];
+                } else {
+                    where[Op.or] = [
+                        {
+                            title: { [Op.iLike]: `%${title}%` },
+                        },
+                        {
+                            title: { [Op.iLike]: `%${title.replace('#', '# ')}%` },
+                        },
+                    ];
+                }
+            } else {
+                where['title'] = {[Op.iLike]: `%${title ? title : ''}%`};
+            }
         }
 
         const options = {
@@ -301,7 +344,7 @@ export class DocumentService {
                     info: document.info ? document.info : oldDoc.info,
                     categoryId: document.categoryId ? document.categoryId : oldDoc.categoryId,
                     active: document.active ? document.active : oldDoc.active,
-                    number: document.number ? Utils.prettify(document.number) : oldDoc.number,
+                    number: document.number ? Utils.prettifyDocumentNumber(document.number) : oldDoc.number,
                     visibility: document.visibility ? document.visibility : oldDoc.visibility,
                     link: filePath ? filePath : oldDoc.link,
                     renew: document.renew ? document.renew : oldDoc.renew,

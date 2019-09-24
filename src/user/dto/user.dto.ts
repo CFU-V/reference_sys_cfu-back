@@ -4,6 +4,8 @@ export class UserDto {
   @ApiModelProperty()
   id: number;
   @ApiModelProperty({required: false})
+  login: string;
+  @ApiModelProperty({required: false})
   password: string;
   @ApiModelProperty({required: false})
   roleId: number;
