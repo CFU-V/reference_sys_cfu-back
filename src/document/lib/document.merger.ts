@@ -1,5 +1,5 @@
 import * as xl from 'xml2js';
-import { IMergeredDocument } from '../interfaces/mergered.document.interface';
+import { IMergedDocumentData } from '../interfaces/merged.document.data.interface';
 import { IDocumentBookmark } from '../interfaces/document.bookmark.interface';
 
 /**
@@ -50,11 +50,11 @@ export default class DocumentMerger {
      * @param {string[]} xmlFiles Массив XML файллов (дочерних)
      * @returns {void}
      */
-    public async start(xmlFiles: [string]): Promise<string> {
+    public async start(xmlFiles: string[]): Promise<string> {
         try {
             this.checkValidateParams();
             for (const xml of xmlFiles) {
-                const response: IMergeredDocument = await this.getOperation(this.paragraphs, this.bookmarks, xml);
+                const response: IMergedDocumentData = await this.getOperation(this.paragraphs, this.bookmarks, xml);
                 this.bookmarks = response.bookmarks;
                 this.paragraphs = response.paragraphs;
             }
@@ -128,7 +128,7 @@ export default class DocumentMerger {
      * @param {string} xml
      * @returns {{bookmarks: {}[], paragraphs: {}[]}}
      */
-    private async getOperation(mainParagraphs: any[], mainBookmarks: IDocumentBookmark[], xml: string): Promise<IMergeredDocument> {
+    private async getOperation(mainParagraphs: any[], mainBookmarks: IDocumentBookmark[], xml: string): Promise<IMergedDocumentData> {
         // ? #1 Избежать системных закладок и работать с закладками которые есть в обоих файлах
         // ? #2 Если количество параграфов совпадает
         // ? #3 Если в чайлд больше параграфов чем в мейн
@@ -349,7 +349,7 @@ export default class DocumentMerger {
                 bookmarks: mainBookmarks,
             };
         } catch (error) {
-            console.log(error)
+            console.log(error);
             throw error;
         }
     }
@@ -441,7 +441,7 @@ export default class DocumentMerger {
     }
 
     /**
-     * Заменить тег w:r в paragraph на тот что в otheParagraph
+     * Заменить тег w:r в paragraph на тот что в otherParagraph
      * @param {{}} paragraph
      * @param {{}} otherParagraph
      * @returns {{}} Возвращает paragraph
@@ -451,6 +451,20 @@ export default class DocumentMerger {
             return paragraph;
         }
         paragraph['w:r'] = otherParagraph['w:r'];
+        '<w:hyperlink r:id="rId8" w:history="1">' +
+        '<w:r w:rsidR="00E6710E" w:rsidRPr="00E6710E">' +
+        '<w:rPr>' +
+        '<w:rStyle w:val="a4"/>' +
+        '<w:lang w:val="ru-RU"/>' +
+        '</w:rPr>' +
+        '<w:t>добавил линк</w:t>' +
+        '</w:r>' +
+        '</w:hyperlink>'
+        paragraph['w:r'].push(
+            {
+                '$': { 'w:rsidRPr': '00E049B3' },
+                'w:t': [ ' Последние изменения были сделаны в http://www.serega.com/ssd/8' ],
+            });
         return paragraph;
     }
 }
