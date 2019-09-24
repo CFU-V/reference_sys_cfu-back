@@ -437,6 +437,7 @@ export default class DocumentMerger {
         NewParagraph = NewParagraph.concat(
             paragraphs.slice(end + 1, paragraphs.length),
         );
+        console.log(JSON.stringify(NewParagraph));
         return NewParagraph;
     }
 
@@ -447,9 +448,16 @@ export default class DocumentMerger {
      * @returns {{}} Возвращает paragraph
      */
     private replaceTextFromParagraph(paragraph: any[], otherParagraph: any[]): any[] {
-        if (!otherParagraph['w:r'] || !paragraph['w:r']) {
+        if (
+            !paragraph ||
+            !otherParagraph ||
+            !otherParagraph['w:r'] ||
+            !paragraph['w:r']
+        ) {
             return paragraph;
         }
+        console.log(JSON.stringify(paragraph));
+        console.log(JSON.stringify(otherParagraph));
         paragraph['w:r'] = otherParagraph['w:r'];
         '<w:hyperlink r:id="rId8" w:history="1">' +
         '<w:r w:rsidR="00E6710E" w:rsidRPr="00E6710E">' +
