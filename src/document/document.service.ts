@@ -103,71 +103,76 @@ export class DocumentService {
     }
 
     async getListDocument(user: any, autocomplete?: string, title?: string, page?: number, pageSize?: number) {
-        title = Utils.prettifyString(title);
-        page = page > 0 ? page : PAGE;
-        pageSize = pageSize > 0 ? pageSize : PAGE_SIZE;
-        const offset: number = pageSize * page;
-        const where = {};
+        try {
+            title = title ? Utils.prettifyString(title) : title;
+            page = page > 0 ? page : PAGE;
+            pageSize = pageSize > 0 ? pageSize : PAGE_SIZE;
+            const offset: number = pageSize * page;
+            const where = {};
 
-        if (!user) {
-            where['visibility'] = true;
-        }
-
-        if (autocomplete === 'true') {
-            if (title.indexOf('№') !== -1) {
-                if (title.indexOf('№ ') !== -1) {
-                    where[Op.or] = [
-                        {
-                            title: { [Op.iLike]: `%${title}%` },
-                        },
-                        {
-                            title: { [Op.iLike]: `%${title.replace('№ ', '№')}%` },
-                        },
-                    ];
-                } else {
-                    where[Op.or] = [
-                        {
-                            title: { [Op.iLike]: `%${title}%` },
-                        },
-                        {
-                            title: { [Op.iLike]: `%${title.replace('№', '№ ')}%` },
-                        },
-                    ];
-                }
-            } else if (title.indexOf('#') !== -1) {
-                if (title.indexOf('# ') !== -1) {
-                    where[Op.or] = [
-                        {
-                            title: { [Op.iLike]: `%${title}%` },
-                        },
-                        {
-                            title: { [Op.iLike]: `%${title.replace('# ', '#')}%` },
-                        },
-                    ];
-                } else {
-                    where[Op.or] = [
-                        {
-                            title: { [Op.iLike]: `%${title}%` },
-                        },
-                        {
-                            title: { [Op.iLike]: `%${title.replace('#', '# ')}%` },
-                        },
-                    ];
-                }
-            } else {
-                where['title'] = {[Op.iLike]: `%${title ? title : ''}%`};
+            if (!user) {
+                where['visibility'] = true;
             }
+
+            if (autocomplete === 'true') {
+                if (title.indexOf('№') !== -1) {
+                    if (title.indexOf('№ ') !== -1) {
+                        where[Op.or] = [
+                            {
+                                title: { [Op.iLike]: `%${title}%` },
+                            },
+                            {
+                                title: { [Op.iLike]: `%${title.replace('№ ', '№')}%` },
+                            },
+                        ];
+                    } else {
+                        where[Op.or] = [
+                            {
+                                title: { [Op.iLike]: `%${title}%` },
+                            },
+                            {
+                                title: { [Op.iLike]: `%${title.replace('№', '№ ')}%` },
+                            },
+                        ];
+                    }
+                } else if (title.indexOf('#') !== -1) {
+                    if (title.indexOf('# ') !== -1) {
+                        where[Op.or] = [
+                            {
+                                title: { [Op.iLike]: `%${title}%` },
+                            },
+                            {
+                                title: { [Op.iLike]: `%${title.replace('# ', '#')}%` },
+                            },
+                        ];
+                    } else {
+                        where[Op.or] = [
+                            {
+                                title: { [Op.iLike]: `%${title}%` },
+                            },
+                            {
+                                title: { [Op.iLike]: `%${title.replace('#', '# ')}%` },
+                            },
+                        ];
+                    }
+                } else {
+                    where['title'] = {[Op.iLike]: `%${title ? title : ''}%`};
+                }
+            }
+
+            const options = {
+                limit: pageSize,
+                offset,
+                where,
+            };
+
+            const result = await this.documentRepository.findAndCountAll(options);
+
+            return new EntitiesWithPaging(result.rows, result.count, page, pageSize);
+        } catch (error) {
+            console.log(error);
+            throw error;
         }
-
-        const options = {
-            limit: pageSize,
-            offset,
-            where,
-        };
-
-        const result = await this.documentRepository.findAndCountAll(options);
-
-        return new EntitiesWithPaging(result.rows, result.count, page, pageSize);
     }
 
     async getDocument(id: number, user: any): Promise<GetDocumentDto> {
