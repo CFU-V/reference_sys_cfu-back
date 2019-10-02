@@ -171,6 +171,21 @@ export class DocumentController {
         }
     }
 
+    @Get('/categories')
+    @ApiResponse({ status: 200, description: 'Array of categories'})
+    @ApiOperation({title: 'Get categories.'})
+    async getCategories(
+        @Res() res,
+        @Request() req,
+    ) {
+        try {
+            return res.status(HttpStatus.OK).json(await this.documentService.fetchCategories());
+        } catch (error) {
+            console.log(error);
+            return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ error });
+        }
+    }
+
     @Get('/download/:id')
     @Header('Content-type', DOCX_CONTENT_TYPE)
     @ApiResponse({ status: 200, description: '' })

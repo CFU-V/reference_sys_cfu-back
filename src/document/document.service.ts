@@ -20,14 +20,20 @@ import { DocumentSrhareDto } from './dto/document.srhare.dto';
 import { User } from '../user/entities/user.entity';
 import { DocumentNewsDto } from './dto/document.news.dto';
 import * as moment from 'moment';
+import { Category } from "./entities/category.entity";
 
 @Injectable()
 export class DocumentService {
     constructor(
         @Inject('DocumentRepository') private readonly documentRepository: typeof Document,
         @Inject('BookmarkRepository') private readonly bookmarkRepository: typeof Bookmark,
+        @Inject('CategoryRepository') private readonly categoryRepository: typeof Category,
         @Inject('UserRepository') private readonly userRepository: typeof User,
     ) {}
+
+    async fetchCategories(): Promise<Category> {
+        return await this.categoryRepository.findAll({ attributes: ['id', 'title'] });
+    }
 
     async addDocument(ownerId: number, filePath: string, document: DocumentDto) {
         try {
