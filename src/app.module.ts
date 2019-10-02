@@ -8,6 +8,7 @@ import { DocumentModule } from './document/document.module';
 import { BookmarkModule } from './bookmarks/bookmark.module';
 import { SearchModule } from './search/search.module';
 import { LogsModule } from './logs/logs.module';
+import { MessageModule } from './messages/message.module';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { LogsModule } from './logs/logs.module';
     BookmarkModule,
     SearchModule,
     LogsModule,
+    MessageModule,
   ],
   controllers: [AppController],
   providers: [AppService],

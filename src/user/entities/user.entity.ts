@@ -19,6 +19,7 @@ import * as bcrypt from 'bcrypt';
 import { Role } from './role.entity';
 import { Bookmark } from '../../bookmarks/entities/bookmark.entity';
 import { Document } from '../../document/entities/document.entity';
+import {Message} from "../../messages/entities/message.entity";
 
 @Table({
     timestamps: true,
@@ -97,6 +98,9 @@ export class User extends Model<User> {
 
     @HasMany(() => Bookmark, { onDelete: 'CASCADE' })
     bookmarks: Bookmark[];
+
+    @HasMany(() => Message , { onDelete: 'CASCADE' })
+    messages: Message[];
 
     @BeforeUpdate
     @BeforeCreate
