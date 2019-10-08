@@ -108,34 +108,29 @@ export default class DocumentMerger {
      * @returns {void}
      */
     private deleteGlobalBookmarks(bookmarks: IDocumentBookmark[], paragraphs: convert.Element[]): IMergedDocumentData {
-        try {
-            if (paragraphs.findIndex(i => i.name === 'w:bookmarkEnd') > -1) {
-                for (const [i, bookmark] of bookmarks.entries()) {
-                    if (bookmark.endInOtherPR || bookmark.endIsMinePR) {
-                        continue;
-                    }
-                    let index = -1;
-                    try {
-                        index = paragraphs.findIndex(el => ((el === null || el === undefined) ? '' : el.attributes['w:id']) == bookmark.id);
-                    } catch (error) {
-                        index = -1;
-                        console.error(`[DeleteGlobalBookmarks] ${error}`);
-                    }
-
-                    if (index > -1) {
-                        paragraphs[bookmarks[i].end].elements.push(paragraphs[index]);
-                        paragraphs[index] = null;
-                        paragraphs.splice(index, 1);
-                        bookmarks[i].endIsMinePR = true;
-                    }
+        if (paragraphs.findIndex(i => i.name === 'w:bookmarkEnd') > -1) {
+            for (const [i, bookmark] of bookmarks.entries()) {
+                if (bookmark.endInOtherPR || bookmark.endIsMinePR) {
+                    continue;
                 }
-                return { paragraphs, bookmarks };
-            } else {
-                return { paragraphs, bookmarks };
+                let index = -1;
+                try {
+                    index = paragraphs.findIndex(el => ((el === null || el === undefined) ? '' : el.attributes['w:id']) == bookmark.id);
+                } catch (error) {
+                    index = -1;
+                    console.error(`[DeleteGlobalBookmarks] ${error}`);
+                }
+
+                if (index > -1) {
+                    paragraphs[bookmarks[i].end].elements.push(paragraphs[index]);
+                    paragraphs[index] = null;
+                    paragraphs.splice(index, 1);
+                    bookmarks[i].endIsMinePR = true;
+                }
             }
-        } catch (error) {
-            console.log(error);
-            throw error;
+            return { paragraphs, bookmarks };
+        } else {
+            return { paragraphs, bookmarks };
         }
     }
 
