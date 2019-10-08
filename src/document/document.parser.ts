@@ -6,6 +6,7 @@ import {
     CORE_XML_PATH,
     DOCX_TPM_FOLDER_PATH,
     DOCX_XML_PATH,
+    RELS_XML_PATH,
     PROPERTY_FIELDS,
 } from '../common/constants';
 import * as path from 'path';
@@ -16,6 +17,7 @@ import Utils from '../core/Utils';
 import { Document } from './entities/document.entity';
 import { HttpException } from '@nestjs/common';
 import { BodyDocumentPropertyDto } from './dto/document.body.property.dto';
+import { IExtractedDocument } from './interfaces/extractedDocument';
 
 const cheerioOptions = {decodeEntities: false, xmlMode: true, normalizeTags: true, normalizeWhitespace: true};
 
@@ -39,21 +41,26 @@ export default class DocumentParser {
                 old_version: documentsTree.old_version,
                 level: documentsTree.level,
                 formatted: await cheerio.load(zip.readAsText(DOCX_XML_PATH), cheerioOptions),
+                relsXml: zip.readAsText(RELS_XML_PATH),
                 resultedFileName: null,
             };
             zip.deleteFile(DOCX_XML_PATH);
+            zip.deleteFile(RELS_XML_PATH);
 
             if (documentsTree.childrens.length > 0) {
                 for (const child of documentsTree.childrens) {
                     if (child.childrens.length > 0) {
                         const resultedChild: FormattedDocumentDto = await this.format(child);
-                        await this.merger.load(formattedDocument.formatted.xml());
-                        const mergeResult = await this.merger.start([resultedChild.formatted.xml()]);
-                        formattedDocument.formatted = await cheerio.load(mergeResult, cheerioOptions);
+                        this.merger.load(formattedDocument.formatted.xml(), formattedDocument.relsXml);
+                        const mergeResult = this.merger.start([resultedChild.formatted.xml()], [resultedChild.relsXml]);
+                        formattedDocument.formatted = await cheerio.load(mergeResult.document, cheerioOptions);
+                        formattedDocument.relsXml = mergeResult.linksDocument;
                     } else {
-                        await this.merger.load(formattedDocument.formatted.xml());
-                        const mergeResult = await this.merger.start([await this.extractDocument(child.link)]);
-                        formattedDocument.formatted = await cheerio.load(mergeResult, cheerioOptions);
+                        await this.merger.load(formattedDocument.formatted.xml(), formattedDocument.relsXml);
+                        const extractedDoc = await this.extractDocument(child.link);
+                        const mergeResult = await this.merger.start([extractedDoc.document], [extractedDoc.rels]);
+                        formattedDocument.formatted = await cheerio.load(mergeResult.document, cheerioOptions);
+                        formattedDocument.relsXml = mergeResult.linksDocument;
                         if (formattedDocument.old_version) {
                             formattedDocument.formatted = await this.setOldVersion(formattedDocument.old_version, formattedDocument.formatted);
                             formattedDocument.old_version = null;
@@ -67,7 +74,7 @@ export default class DocumentParser {
                 }
             }
 
-            formattedDocument.resultedFileName = await this.saveDocx(zip, formattedDocument.formatted, documentsTree);
+            formattedDocument.resultedFileName = await this.saveDocx(zip, formattedDocument.formatted, formattedDocument.relsXml, documentsTree);
             return formattedDocument;
         } catch (error) {
             console.log(error);
@@ -169,9 +176,11 @@ export default class DocumentParser {
         });
     }
 
-    private async extractDocument(docPath: string): Promise<string> {
+    private async extractDocument(docPath: string): Promise<IExtractedDocument> {
         const zip = new Zip(docPath);
-        return await zip.readAsText(DOCX_XML_PATH);
+        const document = await zip.readAsText(DOCX_XML_PATH);
+        const rels = await zip.readAsText(RELS_XML_PATH);
+        return { document, rels };
     }
 
     private async extractDocumentProperty(docPath: string): Promise<string> {
@@ -179,9 +188,10 @@ export default class DocumentParser {
         return await zip.readAsText(CORE_XML_PATH);
     }
 
-    private async saveDocx(zip: Zip, formattedDocument: CheerioStatic, document: DocumentRecursiveDto): Promise<string> {
+    private async saveDocx(zip: Zip, formattedDocument: CheerioStatic, rels: string, document: DocumentRecursiveDto): Promise<string> {
         const link = path.resolve(__dirname, `${DOCX_TPM_FOLDER_PATH}/${path.basename(document.link)}`);
         await zip.addFile(DOCX_XML_PATH, Buffer.from(formattedDocument.xml()));
+        await zip.addFile(RELS_XML_PATH, Buffer.from(rels));
         await zip.writeZip(link);
         return path.basename(document.link);
     }

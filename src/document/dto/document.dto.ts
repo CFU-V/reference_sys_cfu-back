@@ -115,6 +115,7 @@ export class FormattedDocumentDto {
   parentId: number;
   old_version: number;
   level: number;
+  relsXml: string;
   formatted: CheerioStatic;
   resultedFileName: string;
 }
