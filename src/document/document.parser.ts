@@ -1,7 +1,8 @@
 import * as cheerio from 'cheerio';
 import * as Zip from 'adm-zip';
 import * as convert from 'xml2js';
-import DocumentMerger from './lib/document.merger';
+// import DocumentMerger from './lib/document.merger';
+import DocumentMerger from './lib/mergeLib';
 import {
     CORE_XML_PATH,
     DOCX_TPM_FOLDER_PATH,
@@ -51,8 +52,8 @@ export default class DocumentParser {
                 for (const child of documentsTree.childrens) {
                     if (child.childrens.length > 0) {
                         const resultedChild: FormattedDocumentDto = await this.format(child);
-                        this.merger.load(formattedDocument.formatted.xml(), formattedDocument.relsXml);
-                        const mergeResult = this.merger.start([resultedChild.formatted.xml()], [resultedChild.relsXml]);
+                        await this.merger.load(formattedDocument.formatted.xml(), formattedDocument.relsXml);
+                        const mergeResult = await this.merger.start([resultedChild.formatted.xml()], [resultedChild.relsXml]);
                         formattedDocument.formatted = await cheerio.load(mergeResult.document, cheerioOptions);
                         formattedDocument.relsXml = mergeResult.linksDocument;
                     } else {
