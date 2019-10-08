@@ -38,7 +38,7 @@ export class DocumentService {
     async addDocument(ownerId: number, filePath: string, document: DocumentDto) {
         try {
             if (document.old_version) {
-                const documents: Array<FullDocumentDto> = await this.documentRepository.sequelize.query(
+                const documents: FullDocumentDto[] = await this.documentRepository.sequelize.query(
                     'WITH RECURSIVE sub_documents(id, ' +
                     'title, "ownerId", info, ' +
                     '"categoryId", link, "parentId", ' +

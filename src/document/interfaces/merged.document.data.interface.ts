@@ -1,7 +1,7 @@
 import {IDocumentBookmark} from "./document.bookmark.interface";
-import { Element, ElementCompact} from 'xml-js';
+import { Element } from 'xml-js';
 
 export interface IMergedDocumentData {
     bookmarks: IDocumentBookmark[];
-    paragraphs: Element | ElementCompact;
+    paragraphs: Element[];
 }
