@@ -70,8 +70,6 @@ export default class DocumentMerger {
         console.error(`[Start] Ошибка при работе с файлом. ${error}`);
       }
     }
-    console.log(this.bookmarks);
-      console.log(this.paragraphs);
       this.document_object['elements'][0]['elements'][0]['elements'] = this.paragraphs;
       const document = convert.js2xml(this.document_object);
       const linksDocument = convert.js2xml(this.hyperlinks);
@@ -185,6 +183,7 @@ export default class DocumentMerger {
     // ? #4 Если в чайлд меньше параграфов чем в мейн
     // !Исправить, после замены параграфов,текстов - заменить ID's на мейн
     if (this.CheckValidateParams()) return;
+    console.log(Bookmarks_main)
     // Init
 	  let Object_filexml = null;
 	  let Object_filexml_links = null;

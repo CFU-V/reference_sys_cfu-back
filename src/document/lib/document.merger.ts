@@ -99,6 +99,7 @@ export default class DocumentMerger {
             this.bookmarks = res.bookmarks;
             this.paragraphs = res.paragraphs;
         } catch (error) {
+            console.log(error);
             throw error;
         }
     }
