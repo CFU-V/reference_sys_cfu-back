@@ -3,29 +3,20 @@ import {
     Model,
     Column,
     DataType,
-    Default,
     AllowNull,
-    CreatedAt,
-    UpdatedAt,
     PrimaryKey,
     ForeignKey,
     AutoIncrement,
     BelongsTo,
     BelongsToMany,
-    BeforeUpdate,
-    BeforeCreate,
-    BeforeDestroy,
-    AfterCreate,
-    AfterUpdate,
-    HasMany,
-    HasOne,
 } from 'sequelize-typescript';
 import { User } from '../../user/entities/user.entity';
+import { UserMessage } from './message.users.entity';
 
 @Table({
     timestamps: true,
     underscored: false,
-    tableName: 'documents',
+    tableName: 'messages',
 })
 
 export class Message extends Model<Message> {
@@ -57,6 +48,6 @@ export class Message extends Model<Message> {
     @BelongsTo(() => User, { onDelete: 'CASCADE' })
     author: User;
 
-    @BelongsTo(() => User, { onDelete: 'CASCADE' })
-    recipient: User;
+    @BelongsToMany(() => User, () => UserMessage)
+    recipients: User[];
 }

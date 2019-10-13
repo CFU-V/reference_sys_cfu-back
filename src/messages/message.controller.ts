@@ -1,23 +1,16 @@
 import {
     Controller,
-    Get,
     Res,
     HttpStatus,
-    Param,
     Post,
     Body,
-    Query,
-    Put,
-    Delete,
     Request,
     UseGuards,
-    UploadedFile,
-    UseInterceptors,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { ApiUseTags, ApiBearerAuth, ApiConsumes, ApiImplicitFile, ApiResponse, ApiOperation, ApiImplicitQuery} from '@nestjs/swagger';
-import { MessageService } from "./message.service";
-import { MessageDto } from "./dto/message.dto";
+import { MessageService } from './message.service';
+import { MessageDto } from './dto/message.dto';
 
 @ApiUseTags('message')
 @Controller('message')

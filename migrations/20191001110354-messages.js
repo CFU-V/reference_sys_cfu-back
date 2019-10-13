@@ -6,6 +6,7 @@ module.exports = {
       id: {
         allowNull: false,
         autoIncrement: true,
+        unique: true,
         primaryKey: true,
         type: Sequelize.INTEGER
       },
@@ -14,16 +15,6 @@ module.exports = {
         type: Sequelize.STRING(6000),
       },
       authorId: {
-        allowNull: false,
-        primaryKey: true,
-        references: {
-          model: 'users',
-          key: 'id'
-        },
-        onDelete: 'CASCADE',
-        type: Sequelize.BIGINT,
-      },
-      recipientId: {
         allowNull: false,
         primaryKey: true,
         references: {
