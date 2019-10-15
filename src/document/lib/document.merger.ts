@@ -2,7 +2,7 @@ import { IMergedDocumentData } from '../interfaces/merged.document.data.interfac
 import { IDocumentBookmark } from '../interfaces/document.bookmark.interface';
 import * as convert from 'xml-js';
 import { IMergedDocument } from '../interfaces/merged.document.interface';
-import { isNullOrUndefined } from 'util';
+import { hasOwnProperty } from 'tslint/lib/utils';
 
 /**
  * Класс для объединения содержимого документов в один главный документ
@@ -50,7 +50,7 @@ export default class DocumentMerger {
             console.error('[CheckValidateParams] Ошибка! bookmarks <= 0 || null');
             return true;
         }
-        if (this.hyperlinks.elements.length <= 0 || this.hyperlinks == null) {
+        if (this.hyperlinks.elements[0].elements.length <= 0 || this.hyperlinks == null) {
             console.error('[CheckValidateParams] Ошибка! hyperlinks <= 0 || null');
             return true;
         }
@@ -71,7 +71,7 @@ export default class DocumentMerger {
                 this.bookmarks = response.bookmarks;
                 this.paragraphs = response.paragraphs;
             }
-            this.documentObject.elements[0].elements[0].elements = this.paragraphs;
+            this.documentObject.elements[0].elements[0].elements = this.fixSpaceInTextParagraph(this.paragraphs);
             const document = convert.js2xml(this.documentObject);
             const linksDocument = convert.js2xml(this.hyperlinks);
             return { document, linksDocument };
@@ -88,20 +88,57 @@ export default class DocumentMerger {
      */
     public load(xml: string, links: string): void {
         try {
-            const parseXmlFile = convert.xml2js(xml, {compact: false, trim: false});
             this.hyperlinks = convert.xml2js(links, {compact: false, trim: false});
+            this.documentObject = convert.xml2js(xml, {compact: false, trim: false});
             this.document = xml;
-            this.documentObject = parseXmlFile;
-            this.bookmarks = this.getBookmarks(xml);
             this.paragraphs = this.documentObject.elements[0].elements[0].elements;
+            const response = this.getBookmarks(this.paragraphs);
+            this.bookmarks = response.bookmarks;
+            this.paragraphs = response.paragraphs;
+
             this.checkValidateParams();
-            const res: IMergedDocumentData = this.deleteGlobalBookmarks(this.bookmarks, this.paragraphs);
-            this.bookmarks = res.bookmarks;
-            this.paragraphs = res.paragraphs;
         } catch (error) {
-            console.log(error);
+            console.error(`[Load] Ошибка! ${error}`);
             throw error;
         }
+    }
+
+    /**
+     * * Исправление поврежденных тэгов w:t после парсера
+     * @param {[]} paragraphs
+     * @returns {[]} paragraphs
+     */
+    fixSpaceInTextParagraph(paragraphs: convert.Element[]): convert.Element[] {
+        for (const paragraph of paragraphs) {
+            if (paragraph.name === 'w:p') {
+                if (!this.ObjectHasKey(paragraph, 'elements')) {
+                    continue;
+                }
+                const elementsLength = paragraph.elements.length;
+
+                for (let j = 0; j < elementsLength; j++) {
+                    if (paragraph.elements[j].name === 'w:r') {
+                        if (!this.ObjectHasKey(paragraph.elements[j], 'elements')) {
+                            continue;
+                        }
+                        const wrLength = paragraph.elements[j].elements.length;
+
+                        for (let k = 0; k < wrLength; k++) {
+                            if (paragraph.elements[j].elements[k].name === 'w:t') {
+                                if (!this.ObjectHasKey(paragraph.elements[j].elements[k], 'elements')) {
+                                    paragraph.elements[j].elements[k].elements = [];
+                                    paragraph.elements[j].elements[k].elements.push({
+                                        text: ' ',
+                                        type: 'text',
+                                    });
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return paragraphs;
     }
 
     /**
@@ -111,28 +148,54 @@ export default class DocumentMerger {
     private deleteGlobalBookmarks(bookmarks: IDocumentBookmark[], paragraphs: convert.Element[]): IMergedDocumentData {
         if (paragraphs.findIndex(i => i.name === 'w:bookmarkEnd') > -1) {
             for (const [i, bookmark] of bookmarks.entries()) {
-                if (bookmark.endInOtherPR || bookmark.endIsMinePR) {
-                    continue;
-                }
-                let index = -1;
-                try {
-                    index = paragraphs.findIndex(el => ((el === null || el === undefined) ? '' : el.attributes['w:id']) == bookmark.id);
-                } catch (error) {
-                    index = -1;
-                    console.error(`[DeleteGlobalBookmarks] ${error}`);
-                }
+                if (!bookmark.endInOtherPR && !bookmark.endIsMinePR ) {
+                    for (let j = bookmark.end; j > 0; j--) {
+                        if (paragraphs[j].name === 'w:p') {
+                            if (this.ObjectHasKey(paragraphs[j], 'elements')) {
+                                console.log(437598734856874365876345876348576438756347865873465)
+                                paragraphs[j].elements.push(paragraphs[bookmark.end]);
+                                paragraphs[bookmark.end] = null;
+                                paragraphs.splice(bookmark.end, 1);
+                                bookmark.endIsMinePR = true;
+                                bookmark.end = j;
 
-                if (index > -1) {
-                    paragraphs[bookmarks[i].end].elements.push(paragraphs[index]);
-                    paragraphs[index] = null;
-                    paragraphs.splice(index, 1);
-                    bookmarks[i].endIsMinePR = true;
+                                for (let k = i + 1; k < bookmarks.length; k++) {
+                                    bookmarks[k].end -= 1;
+                                    bookmarks[k].start -= 1;
+                                }
+                                break;
+                            }
+                        }
+                    }
                 }
             }
             return { paragraphs, bookmarks };
         } else {
             return { paragraphs, bookmarks };
         }
+    }
+
+    /**
+     *
+     * @param {*} object
+     */
+    isNullOrUndefined(object) {
+        return object === null || object === undefined;
+    }
+
+    /**
+     * Удалить сломанные закладки
+     * @param {[]} bookmarks
+     * @returns {[]} bookmarks
+     */
+    removeBrokenBookMarks(bookmarks: IDocumentBookmark[]) {
+        const newBookmarks = [];
+        for (const bookmark of bookmarks) {
+            if (!(isNaN(bookmark.end) || this.isNullOrUndefined(bookmark.end))) {
+                newBookmarks.push(bookmark);
+            }
+        }
+        return newBookmarks;
     }
 
     /**
@@ -152,6 +215,9 @@ export default class DocumentMerger {
         try {
             this.checkValidateParams();
             for (let i = start; i <= end; i++) {
+                if (!this.ObjectHasKey(paragraphs[i].elements, 'length')) {
+                    continue;
+                }
                 const maxElements = paragraphs[i].elements.length;
                 if (maxElements < 1) {
                     continue;
@@ -211,11 +277,9 @@ export default class DocumentMerger {
             this.checkValidateParams();
             const objectXml = convert.xml2js(xml, {compact: false, trim: false}); // Конвертируем XML в Array of Object;
             const objectLinksXml = convert.xml2js(linksXml, {compact: false, trim: false}); // Конвертируем XML в Array of Object;
+
             // Удаляем глобальные закладки
-            const documentData: IMergedDocumentData = this.deleteGlobalBookmarks(
-                this.getBookmarks(xml),
-                objectXml.elements[0].elements[0].elements,
-            );
+            const documentData: IMergedDocumentData = this.getBookmarks(objectXml.elements[0].elements[0].elements);
             const bookmarksXml = documentData.bookmarks;
             let paragraphsXml = documentData.paragraphs;
             for (const bookmarkXml of bookmarksXml) {
@@ -231,6 +295,7 @@ export default class DocumentMerger {
                 const mainBookmark = mainBookmarks[mainBookmarkIndex];
                 paragraphsXml = this.computingLinks(bookmarkXml.start, bookmarkXml.end, paragraphsXml, objectLinksXml);
                 if (bookmarkXml.countParagraphs === mainBookmark.countParagraphs) {
+                    console.log(1)
                     for (let j = 0; j < mainBookmark.countParagraphs; j++) {
                         if (!(mainParagraphs[mainBookmark.start + j] && paragraphsXml[bookmarkXml.start + j])) {
                             continue;
@@ -241,7 +306,9 @@ export default class DocumentMerger {
                             true);
                     }
                 } else {
+                    console.log(2)
                     if (bookmarkXml.countParagraphs > mainBookmark.countParagraphs) {
+                        console.log(2.1)
                         mainParagraphs[mainBookmark.start] = this.replaceTextFromOtherParagraph(
                             mainParagraphs[mainBookmark.start],
                             paragraphsXml[bookmarkXml.start],
@@ -252,6 +319,7 @@ export default class DocumentMerger {
                             mainBookmark.endInOtherPR === bookmarkXml.endInOtherPR &&
                             mainBookmark.endIsMinePR === bookmarkXml.endIsMinePR
                         ) {
+                            console.log('2.1.1')
                             const paragraphsCount = bookmarkXml.countParagraphs - mainBookmark.countParagraphs;
                             const PR = this.getRangeParagraphs(
                                 paragraphsXml,
@@ -283,6 +351,7 @@ export default class DocumentMerger {
                                         type: 'element',
                                     });
                         } else {
+                            console.log('2.1.2')
                             const paragraphsCount = bookmarkXml.countParagraphs - mainBookmark.countParagraphs;
                             const PR = this.getRangeParagraphs(
                                 paragraphsXml,
@@ -304,9 +373,10 @@ export default class DocumentMerger {
                                 mainBookmarks[j].start += paragraphsCount;
                                 mainBookmarks[j].end += paragraphsCount;
                             }
-                            this.deleteBookMarksInLastPR_FIX(mainParagraphs[mainBookmark[mainBookmarkIndex].end]);
+                            this.deleteBookMarksInLastPR_FIX(mainParagraphs[mainBookmarks[mainBookmarkIndex].end]);
                             // Фикс закладок
                             if (mainBookmarks[mainBookmarkIndex].endInOtherPR) {
+                                console.log('2.1.2.1')
                                 const index = mainParagraphs[mainBookmarks[mainBookmarkIndex].end].elements
                                     .findIndex(i => i.name === 'w:bookmarkEnd');
                                 if (index > -1) {
@@ -314,6 +384,7 @@ export default class DocumentMerger {
                                     mainParagraphs[mainBookmarks[mainBookmarkIndex].end].elements.splice(index, 1);
                                 }
                             } else {
+                                console.log('2.1.2.2')
                                 mainParagraphs[mainBookmarks[mainBookmarkIndex].end].elements
                                     .push(
                                         {
@@ -323,6 +394,7 @@ export default class DocumentMerger {
                             }
                         }
                     } else {
+                        console.log(2.2)
                         mainParagraphs[mainBookmark.start] = this.replaceTextFromOtherParagraph(
                             mainParagraphs[mainBookmark.start],
                             paragraphsXml[mainBookmark.start],
@@ -333,6 +405,7 @@ export default class DocumentMerger {
                             mainBookmark.endInOtherPR === bookmarkXml.endInOtherPR &&
                             mainBookmark.endIsMinePR === bookmarkXml.endIsMinePR
                         ) {
+                            console.log('2.2.1')
                             const paragraphsCount = bookmarkXml.countParagraphs - mainBookmark.countParagraphs;
                             for (let j = mainBookmark.start + 1; j <= mainBookmark.end; j++) {
                                 mainParagraphs.splice(mainBookmark.start + 1, 1);
@@ -365,6 +438,7 @@ export default class DocumentMerger {
                                         type: 'element',
                                     });
                         } else {
+                            console.log('2.2.2')
                             const paragraphsCount = bookmarkXml.countParagraphs - mainBookmark.countParagraphs;
                             for (let j = mainBookmark.start + 1; j <= mainBookmark.end; j++) {
                                 mainParagraphs.splice(mainBookmark.start + 1, 1);
@@ -422,62 +496,74 @@ export default class DocumentMerger {
 
     /**
      * Получить массив закладок из гл. Документа
-     * @param {string} xml
      * @returns {[]} Возвращает массив закладок из документа
+     * @param paragraphs
      */
-    private getBookmarks(xml: string): IDocumentBookmark[] {
+    private getBookmarks(paragraphs: convert.Element[]): IMergedDocumentData {
         try {
-            const regexBookmarkName = /п_[а-я,0-9,-,_]+/i;
-            const regexBookmarkId = /[0-9]+/i;
-            const splitDocument = xml.split('<');
-            const bookmarks: IDocumentBookmark[] = [];
-            let paragraphIsOpen = false;
+            let bookmarks: IDocumentBookmark[] = [];
             let bookMarkIsOpen = false;
-            let countParagraphs = -1;
-            let fix = -1;
-            for (const element of splitDocument) {
-                if (element.includes('w:p ')) {
-                    countParagraphs++;
-                    fix = countParagraphs;
-                    paragraphIsOpen = true;
+            for (const [i, paragraph] of paragraphs.entries()) {
+                if (paragraph.name === 'w:p') {
                     bookMarkIsOpen = false;
-                } else if (element.includes('/w:p>')) {
-                    paragraphIsOpen = false;
-                    fix += 1;
-                }
+                    for (const element of paragraph.elements) {
+                        if (element.name === 'w:bookmarkStart') {
+                            let elName = element.attributes['w:name'];
+                            if (elName === '_GoBack') {
+                                elName = null;
+                            }
+                            bookMarkIsOpen = true;
+                            const elId = element.attributes['w:id'];
+                            bookmarks.push({
+                                start: i,
+                                name: elName,
+                                id: parseInt(elId.toString(), 10),
+                            });
 
-                if (element.includes('w:bookmarkStart ')) {
-                    bookMarkIsOpen = true;
-                    const name = regexBookmarkName.exec(element) !== null ? regexBookmarkName.exec(element)[0] : null;
-                    const id = regexBookmarkId.exec(element) !== null ? parseInt(regexBookmarkId.exec(element)[0], 10) : -1;
-                    if (id > -1) {
-                        bookmarks[id] = {
-                            start: countParagraphs,
-                            name,
-                            id,
-                            paragraphIsOpen,
-                        };
-                    }
-                } else if (element.includes('w:bookmarkEnd ')) {
-                    const prBkIsOpen = (paragraphIsOpen && bookMarkIsOpen);
-                    const id = regexBookmarkId.exec(element) !== null ? parseInt(regexBookmarkId.exec(element)[0], 10) : -1;
-                    if (id > -1) {
-                        let indexEnd = prBkIsOpen ? countParagraphs - 1 : countParagraphs;
-
-                        if (indexEnd < bookmarks[id].start) {
-                            indexEnd = bookmarks[id].start;
+                        } else if (element.name === 'w:bookmarkEnd') {
+                            const elId = element.attributes['w:id'];
+                            const index = bookmarks.findIndex(item => item.id == elId);
+                            if (index > -1) {
+                                bookmarks[index].end = i;
+                                bookmarks[index].endInOtherPR = (bookMarkIsOpen && (bookmarks[index].end != bookmarks[index].start));
+                                bookmarks[index].endIsMinePR = (bookmarks[index].end == bookmarks[index].start) || (bookMarkIsOpen == false);
+                            }
                         }
-
-                        const countParagraphsInBK = (indexEnd - bookmarks[id].start) + 1;
-                        bookmarks[id].end = indexEnd;
-                        bookmarks[id].endInOtherPR = (prBkIsOpen && (bookmarks[id].start !== fix));
-                        bookmarks[id].endIsMinePR = ((paragraphIsOpen && bookMarkIsOpen === false) || (bookmarks[id].start === fix));
-                        bookmarks[id].countParagraphs = countParagraphsInBK;
+                    }
+                }
+                if (paragraph.name === 'w:bookmarkStart') {
+                    const elName = paragraph.attributes['w:name'];
+                    throw new Error(`[GetBookmarks] Закладка вне параграфов. Name: ${elName}.`);
+                } else if (paragraph.name === 'w:bookmarkEnd') {
+                    const id = paragraph.attributes['w:id'];
+                    const index = bookmarks.findIndex(item => item.id == id);
+                    if (index > -1) {
+                        bookmarks[index].end = i;
+                        bookmarks[index].endInOtherPR = false;
+                        bookmarks[index].endIsMinePR = false;
                     }
                 }
             }
+            bookmarks = this.removeBrokenBookMarks(bookmarks);
 
-            return bookmarks;
+            const response = this.deleteGlobalBookmarks(bookmarks, paragraphs);
+            bookmarks = response.bookmarks;
+            paragraphs = response.paragraphs;
+            for (const bookmark of bookmarks) {
+                if (bookmark.endInOtherPR) {
+                    bookmark.end -= 1;
+                }
+            }
+
+            for (const bookmark of bookmarks) {
+                const tempNum = (bookmark.end - bookmark.start) + 1;
+                bookmark.countParagraphs = (tempNum <= 0 ? 1 : tempNum);
+            }
+
+            return {
+                paragraphs,
+                bookmarks,
+            };
         } catch (error) {
             console.log(error);
             throw error;
@@ -505,13 +591,13 @@ export default class DocumentMerger {
     private addNewParagraphs(paragraphs: convert.Element[], newParagraphs: convert.Element[], start: number, end: number): any[] {
         try {
             if (newParagraphs.length < 0) {
+                console.error('[AddNewParagraphs] Ошибка! Массив newParagraphs пуст');
                 return paragraphs;
             }
+
             let NewParagraph = paragraphs.slice(0, start + 1);
             NewParagraph = NewParagraph.concat(newParagraphs);
-            NewParagraph = NewParagraph.concat(
-                paragraphs.slice(end + 1, paragraphs.length),
-            );
+            NewParagraph = NewParagraph.concat(paragraphs.slice(end + 1, paragraphs.length));
             return NewParagraph;
         } catch (error) {
             console.log(error);
@@ -541,12 +627,20 @@ export default class DocumentMerger {
     /**
      * Заменить тэги в paragraph на те что в otheParagraph кроме bookmarkStart,bookmarkEnd
      * @param {{}} paragraph
-     * @param {{}} otheParagraph
+     * @param otherParagraph
      * @param check
      * @returns {{}} Возвращает paragraph
      */
     replaceTextFromOtherParagraph(paragraph: convert.Element, otherParagraph: convert.Element, check: boolean): convert.Element {
         try {
+            if (!this.ObjectHasKey(paragraph.elements, 'length')) {
+                return paragraph;
+            }
+
+            if (!this.ObjectHasKey(otherParagraph.elements, 'length')) {
+                return paragraph;
+            }
+
             const buffer = [];
             const parLength = paragraph.elements.length;
             const otherParLength = otherParagraph.elements.length;
@@ -557,7 +651,7 @@ export default class DocumentMerger {
                     break;
                 } else {
                     if (elementName === 'w:pPr') {
-                        const ind = otherParagraph.elements.findIndex(j => j.name === 'w:pPr');
+                        const ind = otherParagraph.elements.findIndex(el => el.name === 'w:pPr');
                         if (ind > -1) {
                             buffer.push(otherParagraph.elements[ind]);
                         } else {
@@ -593,7 +687,7 @@ export default class DocumentMerger {
 
                     try {
                         ind = buffer.findIndex(
-                            j => (j.attributes['w:id'] === null || j.attributes['w:id'] === undefined ? '' : j.attributes['w:id']) === id,
+                            j => (j.attributes['w:id'] === null || j.attributes['w:id'] === undefined ? '' : j.attributes['w:id']) == id,
                         );
                     } catch (error) {
                         ind = -2;
@@ -622,30 +716,40 @@ export default class DocumentMerger {
      * @returns {{}} Возвращает paragraph
      */
     deleteTextInParagraph(paragraph: convert.Element): convert.Element {
-        const buffer = [];
+        const elements = [];
         for (const element of paragraph.elements) {
-            const name = element.name;
-            if (name === 'w:bookmarkEnd' || name === 'w:bookmarkStart' || name === 'w:pPr') {
-                buffer.push(element);
+            if (element.name === 'w:bookmarkEnd' || element.name === 'w:bookmarkStart' || element.name === 'w:pPr') {
+                elements.push(element);
             }
         }
-        paragraph.elements = buffer;
+        paragraph.elements = elements;
         return paragraph;
     }
 
     deleteBookMarksInLastPR_FIX(paragraph: convert.Element): convert.Element {
         try {
-            for (const [i, element] of paragraph.elements.entries()) {
-                const name = element.name;
-                if (name === 'w:bookmarkEnd') {
-                    paragraph.elements[i] = null;
-                    paragraph.elements.splice(i, 1);
+            const elements = [];
+            for (const element of paragraph.elements) {
+                if (element.name !== 'w:bookmarkEnd') {
+                    elements.push(element);
                 }
             }
+            paragraph.elements = elements;
+
             return paragraph;
         } catch (error) {
             console.log(error);
             throw error;
         }
+    }
+
+    /**
+     * Есть ли свойство [key] в объекте [Object]
+     * @param {{}} object
+     * @param {string} key
+     * @returns {boolean}
+     */
+    ObjectHasKey(object, key): boolean {
+        return object ? Object.prototype.hasOwnProperty.call(object, key) : false;
     }
 }
