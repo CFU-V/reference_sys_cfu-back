@@ -41,7 +41,7 @@ export default class DocumentParser {
                 parentId: documentsTree.parentId,
                 old_version: documentsTree.old_version,
                 level: documentsTree.level,
-                formatted: await cheerio.load(zip.readAsText(DOCX_XML_PATH), cheerioOptions),
+                formatted: cheerio.load(zip.readAsText(DOCX_XML_PATH), cheerioOptions),
                 relsXml: zip.readAsText(RELS_XML_PATH),
                 resultedFileName: null,
             };
@@ -54,13 +54,13 @@ export default class DocumentParser {
                         const resultedChild: FormattedDocumentDto = await this.format(child);
                         this.merger.load(formattedDocument.formatted.xml(), formattedDocument.relsXml);
                         const mergeResult = this.merger.start([resultedChild.formatted.xml()], [resultedChild.relsXml]);
-                        formattedDocument.formatted = await cheerio.load(mergeResult.document, cheerioOptions);
+                        formattedDocument.formatted = cheerio.load(mergeResult.document, cheerioOptions);
                         formattedDocument.relsXml = mergeResult.linksDocument;
                     } else {
                         this.merger.load(formattedDocument.formatted.xml(), formattedDocument.relsXml);
                         const extractedDoc = await this.extractDocument(child.link);
                         const mergeResult = this.merger.start([extractedDoc.document], [extractedDoc.rels]);
-                        formattedDocument.formatted = await cheerio.load(mergeResult.document, cheerioOptions);
+                        formattedDocument.formatted = cheerio.load(mergeResult.document, cheerioOptions);
                         formattedDocument.relsXml = mergeResult.linksDocument;
                         if (formattedDocument.old_version) {
                             formattedDocument.formatted = await this.setOldVersion(formattedDocument.old_version, formattedDocument.formatted);

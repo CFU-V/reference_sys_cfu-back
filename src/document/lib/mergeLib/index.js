@@ -464,8 +464,6 @@ export default class DocumentMerger {
             if (paragraphs[j]['name'] == 'w:p') {
 
               if (this.ObjectHasKey(paragraphs[j], 'elements')) {
-                console.log(437598734856874365876345876348576438756347865873465)
-
                 paragraphs[j]['elements'].push(paragraphs[bookmarks[i].end]);
                 paragraphs[bookmarks[i].end] = null;
                 paragraphs.splice(bookmarks[i].end, 1);
@@ -523,7 +521,9 @@ export default class DocumentMerger {
 
       if (paragraph['name'] === 'w:p') {
         bookMarkIsOpen = false;
-
+        if(!this.ObjectHasKey(paragraph, 'elements')) {
+          continue;
+        }
         for (const element_pr of paragraph['elements']) {
           if (element_pr['name'] == 'w:bookmarkStart') {
             let _name = element_pr['attributes']['w:name'];
