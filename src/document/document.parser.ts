@@ -1,8 +1,8 @@
 import * as cheerio from 'cheerio';
 import * as Zip from 'adm-zip';
 import * as convert from 'xml2js';
-// import DocumentMerger from './lib/document.merger';
-import DocumentMerger from './lib/mergeLib';
+import DocumentMerger from './lib/document.merger';
+// import DocumentMerger from './lib/mergeLib';
 import {
     CORE_XML_PATH,
     DOCX_TPM_FOLDER_PATH,
@@ -41,7 +41,7 @@ export default class DocumentParser {
                 parentId: documentsTree.parentId,
                 old_version: documentsTree.old_version,
                 level: documentsTree.level,
-                formatted: await cheerio.load(zip.readAsText(DOCX_XML_PATH), cheerioOptions),
+                formatted: cheerio.load(zip.readAsText(DOCX_XML_PATH), cheerioOptions),
                 relsXml: zip.readAsText(RELS_XML_PATH),
                 resultedFileName: null,
             };
@@ -52,15 +52,15 @@ export default class DocumentParser {
                 for (const child of documentsTree.childrens) {
                     if (child.childrens.length > 0) {
                         const resultedChild: FormattedDocumentDto = await this.format(child);
-                        await this.merger.load(formattedDocument.formatted.xml(), formattedDocument.relsXml);
-                        const mergeResult = await this.merger.start([resultedChild.formatted.xml()], [resultedChild.relsXml]);
-                        formattedDocument.formatted = await cheerio.load(mergeResult.document, cheerioOptions);
+                        this.merger.load(formattedDocument.formatted.xml(), formattedDocument.relsXml);
+                        const mergeResult = this.merger.start([resultedChild.formatted.xml()], [resultedChild.relsXml]);
+                        formattedDocument.formatted = cheerio.load(mergeResult.document, cheerioOptions);
                         formattedDocument.relsXml = mergeResult.linksDocument;
                     } else {
-                        await this.merger.load(formattedDocument.formatted.xml(), formattedDocument.relsXml);
+                        this.merger.load(formattedDocument.formatted.xml(), formattedDocument.relsXml);
                         const extractedDoc = await this.extractDocument(child.link);
-                        const mergeResult = await this.merger.start([extractedDoc.document], [extractedDoc.rels]);
-                        formattedDocument.formatted = await cheerio.load(mergeResult.document, cheerioOptions);
+                        const mergeResult = this.merger.start([extractedDoc.document], [extractedDoc.rels]);
+                        formattedDocument.formatted = cheerio.load(mergeResult.document, cheerioOptions);
                         formattedDocument.relsXml = mergeResult.linksDocument;
                         if (formattedDocument.old_version) {
                             formattedDocument.formatted = await this.setOldVersion(formattedDocument.old_version, formattedDocument.formatted);
