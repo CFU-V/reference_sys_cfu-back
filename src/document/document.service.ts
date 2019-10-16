@@ -341,10 +341,7 @@ export class DocumentService {
                     Utils.deleteIfExist(oldDoc.link);
                 }
 
-                if (
-                    document.deleteChilds ||
-                    document.deleteChilds.toString() === 'true'
-                ) {
+                if (document.deleteChilds.toString() === 'true') {
                     await this.documentRepository.destroy({ where: { parentId: oldDoc.id } });
                 }
 
