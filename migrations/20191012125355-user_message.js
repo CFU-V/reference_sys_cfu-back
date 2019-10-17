@@ -22,11 +22,15 @@ module.exports = {
             },
             allowNull: false
           },
-          created_at: {
+          isRead: {
+              defaultValue: false,
+              type: Sequelize.BOOLEAN,
+          },
+          createdAt: {
             defaultValue: Sequelize.fn('NOW'),
             type: Sequelize.DATE,
           },
-          updated_at: {
+          updatedAt: {
             defaultValue: Sequelize.fn('NOW'),
             onUpdate: 'SET DEFAULT',
             type: Sequelize.DATE,

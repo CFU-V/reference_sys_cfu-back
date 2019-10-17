@@ -12,7 +12,7 @@ module.exports = {
       },
       text: {
         allowNull: false,
-        type: Sequelize.STRING(6000),
+        type: Sequelize.STRING(20000),
       },
       authorId: {
         allowNull: false,
@@ -24,6 +24,15 @@ module.exports = {
         onDelete: 'CASCADE',
         type: Sequelize.BIGINT,
       },
+      createdAt: {
+        defaultValue: Sequelize.fn('NOW'),
+        type: Sequelize.DATE,
+      },
+      updatedAt: {
+        defaultValue: Sequelize.fn('NOW'),
+        onUpdate: 'SET DEFAULT',
+        type: Sequelize.DATE,
+      }
     })
   },
 

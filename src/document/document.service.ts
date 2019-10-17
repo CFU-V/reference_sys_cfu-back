@@ -30,7 +30,9 @@ export class DocumentService {
     ) {}
 
     async addDocument(ownerId: number, filePath: string, document: DocumentDto) {
+        let transaction;
         try {
+            transaction = this.documentRepository.sequelize.transaction();
             if (document.old_version) {
                 const documents: Array<FullDocumentDto> = await this.documentRepository.sequelize.query(
                     'WITH RECURSIVE sub_documents(id, ' +
@@ -80,10 +82,10 @@ export class DocumentService {
                     values.map(_ => '(?)').join(',') +
                     ' ON CONFLICT (id) DO UPDATE SET active = excluded.active, title = excluded.title;';
 
-                await this.documentRepository.sequelize.query({ query, values }, { type: QueryTypes.INSERT });
+                await this.documentRepository.sequelize.query({ query, values }, { type: QueryTypes.INSERT, transaction });
             }
 
-            return await this.documentRepository.create({
+            const newDoc = await this.documentRepository.create({
                 title: Utils.prettifyString(document.title),
                 ownerId,
                 parentId: document.parentId,
@@ -95,8 +97,11 @@ export class DocumentService {
                 visibility: document.visibility,
                 renew: document.renew,
                 link: filePath,
-            });
+            }, { transaction });
+            transaction.commit();
+            return newDoc;
         } catch (error) {
+            transaction.rollback();
             console.log(error);
             throw error;
         }
@@ -328,7 +333,9 @@ export class DocumentService {
     }
 
     async updateDocument(filePath: string, ownerId: number, document: UpdateDocumentDto) {
+        let transaction;
         try {
+            transaction = await this.documentRepository.sequelize.transaction();
             const oldDoc = await this.documentRepository.findOne({ where: {id: document.id} });
             if (oldDoc) {
                 if (filePath) {
@@ -339,10 +346,10 @@ export class DocumentService {
                     document.deleteChilds ||
                     document.deleteChilds.toString() === 'true'
                 ) {
-                    await this.documentRepository.destroy({ where: { parentId: oldDoc.id } });
+                    await this.documentRepository.destroy({ where: { parentId: oldDoc.id }, transaction });
                 }
 
-                return await oldDoc.update({
+                const updatedDoc = await oldDoc.update({
                     title: document.title ? document.title : oldDoc.title,
                     ownerId,
                     parentId: document.parentId ? document.parentId : oldDoc.parentId,
@@ -353,11 +360,15 @@ export class DocumentService {
                     visibility: document.visibility ? document.visibility : oldDoc.visibility,
                     link: filePath ? filePath : oldDoc.link,
                     renew: document.renew ? document.renew : oldDoc.renew,
-                });
+                }, { transaction });
+                transaction.commit();
+                return updatedDoc;
             } else {
+                transaction.rollback();
                 return new HttpException(`Document with id ${document.id} doesn\`t exist.`, HttpStatus.BAD_REQUEST);
             }
         } catch (error) {
+            transaction.rollback();
             console.log(error);
             throw error;
         }

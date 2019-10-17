@@ -1,10 +1,9 @@
 import { ApiModelProperty } from '@nestjs/swagger';
 
 export class MessageDto {
-    @ApiModelProperty()
+    @ApiModelProperty({ required: true })
     text: string;
-    @ApiModelProperty()
+    @ApiModelProperty({ description: 'Ids array of recipients', required: true, type: [Number] })
+    recipients: number[];
     authorId: number;
-    @ApiModelProperty()
-    recipientId: string;
 }

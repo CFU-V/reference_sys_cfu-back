@@ -8,7 +8,7 @@ import {
     ForeignKey,
     AutoIncrement,
     BelongsTo,
-    BelongsToMany,
+    BelongsToMany, CreatedAt, Default, UpdatedAt,
 } from 'sequelize-typescript';
 import { User } from '../../user/entities/user.entity';
 import { UserMessage } from './message.users.entity';
@@ -27,7 +27,7 @@ export class Message extends Model<Message> {
 
     @AllowNull(false)
     @Column({
-        type: DataType.STRING(6000),
+        type: DataType.STRING(20000),
     })
     text: string;
 
@@ -38,12 +38,15 @@ export class Message extends Model<Message> {
     })
     authorId: number;
 
-    @ForeignKey(() => User)
-    @Column({
-        type: DataType.BIGINT,
-        allowNull: true,
-    })
-    recipientId: number;
+    @CreatedAt
+    @Default(DataType.NOW)
+    @Column({type: DataType.DATE})
+    createdAt: Date;
+
+    @UpdatedAt
+    @Default(DataType.NOW)
+    @Column({type: DataType.DATE, onUpdate: 'SET DEFAULT'})
+    updatedAt: Date;
 
     @BelongsTo(() => User, { onDelete: 'CASCADE' })
     author: User;
