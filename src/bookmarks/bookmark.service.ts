@@ -5,13 +5,15 @@ import { Bookmark } from './entities/bookmark.entity';
 import { Document } from '../document/entities/document.entity';
 import { Message } from '../messages/entities/message.entity';
 import { BookmarkNotification } from './bookmark.notification';
-import { SYSTEM_USER_ID } from '../common/constants';
+import { SYSTEM_USER_LOGIN } from '../common/constants';
+import { User } from '../user/entities/user.entity';
 
 @Injectable()
 export class BookmarkService {
     constructor(
         @Inject('MessageRepository') private readonly messageRepository: typeof Message,
         @Inject('BookmarkRepository') private readonly bookmarkRepository: typeof Bookmark,
+        @Inject('UserRepository') private readonly userRepository: typeof User,
     ) {}
 
     async getBookmarks(userId: number, page?: number, pageSize?: number): Promise<EntitiesWithPaging>{
@@ -46,12 +48,13 @@ export class BookmarkService {
                 attributes: ['userId'],
                 raw: true,
             });
-            if (bookmarks.length > 0) {
+            const system = await this.userRepository.findOne({ where: { login: SYSTEM_USER_LOGIN} });
+            if (bookmarks.length > 0 && system) {
                 const users = bookmarks.map((bookmark) => parseInt(bookmark.userId, 10));
                 const sentMessage = await this.messageRepository.create(
                     {
                         text: `Документ: ${document.title} - ${notification}`,
-                        authorId: SYSTEM_USER_ID,
+                        authorId: system.id,
                     },
                     { transaction },
                 );

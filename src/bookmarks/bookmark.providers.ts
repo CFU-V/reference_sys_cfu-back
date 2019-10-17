@@ -1,5 +1,6 @@
 import { Bookmark } from './entities/bookmark.entity';
 import { Message } from '../messages/entities/message.entity';
+import { User } from '../user/entities/user.entity';
 
 export const bookmarkProviders = [
     {
@@ -9,5 +10,9 @@ export const bookmarkProviders = [
     {
         provide: 'MessageRepository',
         useValue: Message,
+    },
+    {
+        provide: 'UserRepository',
+        useValue: User,
     },
 ];

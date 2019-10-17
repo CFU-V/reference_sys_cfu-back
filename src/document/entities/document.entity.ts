@@ -181,7 +181,7 @@ export class Document extends Model<Document> {
     @AfterDestroy
     static async sendDeleteNotification(document: Document) {
         try {
-            const bookmarkService = new BookmarkService(Message, Bookmark);
+            const bookmarkService = new BookmarkService(Message, Bookmark, User);
             await bookmarkService.notify(BookmarkNotification.deleteNotification, document);
         } catch (error) {
             console.log(error);
@@ -216,7 +216,7 @@ export class Document extends Model<Document> {
 
     static async sendUpdateNotification(document: Document) {
         try {
-            const bookmarkService = new BookmarkService(Message, Bookmark);
+            const bookmarkService = new BookmarkService(Message, Bookmark, User);
             await bookmarkService.notify(BookmarkNotification.updateNotification, document);
         } catch (error) {
             console.log(error);
