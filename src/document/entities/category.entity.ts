@@ -5,7 +5,7 @@ import {
     DataType,
     AllowNull,
     PrimaryKey,
-    AutoIncrement,
+    AutoIncrement, CreatedAt, Default, UpdatedAt,
 } from 'sequelize-typescript';
 
 @Table({
@@ -26,4 +26,14 @@ export class Category extends Model<Category> {
         unique: true,
     })
     title: string;
+
+    @CreatedAt
+    @Default(DataType.NOW)
+    @Column({type: DataType.DATE})
+    createdAt: Date;
+
+    @UpdatedAt
+    @Default(DataType.NOW)
+    @Column({type: DataType.DATE, onUpdate: 'SET DEFAULT'})
+    updatedAt: Date;
 }

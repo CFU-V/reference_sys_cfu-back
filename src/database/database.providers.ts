@@ -6,6 +6,8 @@ import { Role } from '../user/entities/role.entity';
 import { Document } from '../document/entities/document.entity';
 import { Bookmark } from '../bookmarks/entities/bookmark.entity';
 import { Category } from '../document/entities/category.entity';
+import { Message } from '../messages/entities/message.entity';
+import { UserMessage } from '../messages/entities/message.users.entity';
 /**
  * Load config
  */
@@ -23,7 +25,7 @@ export const databaseProviders = [
               process.env.DB_PASSWORD,
               {dialect, host},
             );
-            sequelize.addModels([User, Role, Document, Bookmark, Category]);
+            sequelize.addModels([User, Role, Document, Bookmark, Category, Message, UserMessage]);
             await sequelize.sync();
             return sequelize;
         },

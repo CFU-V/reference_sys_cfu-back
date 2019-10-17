@@ -10,18 +10,21 @@ import {
     PrimaryKey,
     ForeignKey,
     AutoIncrement,
-    BelongsTo, BelongsToMany, BeforeUpdate, BeforeCreate, BeforeDestroy, AfterCreate, AfterUpdate, HasMany, HasOne,
+    BelongsTo, BelongsToMany, BeforeUpdate, BeforeCreate, BeforeDestroy, AfterCreate, AfterUpdate, HasMany, HasOne, AfterDestroy,
 } from 'sequelize-typescript';
 import { User } from '../../user/entities/user.entity';
 import { Category } from './category.entity';
 import { SearchIndexing } from '../../search/search.indexing';
-import {DOCUMENT_INDEX} from '../../common/constants';
-import {Map} from '../../search/search.map';
+import { BookmarkService } from '../../bookmarks/bookmark.service';
+import { DOCUMENT_INDEX } from '../../common/constants';
+import { Map } from '../../search/search.map';
 import DocumentParser from '../document.parser';
-import {DocumentRecursiveDto} from '../dto/document.tree.dto';
-import {QueryTypes} from 'sequelize';
+import { DocumentRecursiveDto } from '../dto/document.tree.dto';
+import { QueryTypes } from 'sequelize';
 import { buildDocumentTree } from '../../core/TreeBuilder';
-import {Bookmark} from "../../bookmarks/entities/bookmark.entity";
+import { Bookmark } from '../../bookmarks/entities/bookmark.entity';
+import { Message } from '../../messages/entities/message.entity';
+import { BookmarkNotification } from '../../bookmarks/bookmark.notification';
 
 @Table({
     timestamps: true,
@@ -133,17 +136,20 @@ export class Document extends Model<Document> {
     category: Category;
 
     @AfterUpdate
-    @AfterCreate
-    static async _indexing(document: Document) {
+    static async _afterUpdate(document: Document) {
         try {
-            const searchIndexing = new SearchIndexing(Document);
-            if (!document.parentId) {
-                await searchIndexing.bulkIndex(DOCUMENT_INDEX, [await this.getDocumentData(document.id)]);
-            } else {
-                await searchIndexing.deleteIfExist(DOCUMENT_INDEX, [document.id]);
-                await searchIndexing.bulkIndex(DOCUMENT_INDEX, [await this.getDocumentData(document.id)]);
-                await searchIndexing.update(DOCUMENT_INDEX, await this.getDocumentData(document.parentId));
-            }
+            await Document._indexing(document);
+        } catch (error) {
+            console.log(error);
+            throw error;
+        }
+        await Document.sendUpdateNotification(document);
+    }
+
+    @AfterCreate
+    static async _afterCreate(document: Document) {
+        try {
+            await Document._indexing(document);
         } catch (error) {
             console.log(error);
             await document.destroy();
@@ -172,6 +178,16 @@ export class Document extends Model<Document> {
         }
     }
 
+    @AfterDestroy
+    static async sendDeleteNotification(document: Document) {
+        try {
+            const bookmarkService = new BookmarkService(Message, Bookmark);
+            await bookmarkService.notify(BookmarkNotification.deleteNotification, document);
+        } catch (error) {
+            console.log(error);
+        }
+    }
+
     static async getDocumentData(id: number) {
         try {
             const doc = await this.findOne({
@@ -194,6 +210,30 @@ export class Document extends Model<Document> {
             return await Map.documents(doc.get({ plain: true }));
         } catch (error) {
             console.log(error);
+            throw error;
+        }
+    }
+
+    static async sendUpdateNotification(document: Document) {
+        try {
+            const bookmarkService = new BookmarkService(Message, Bookmark);
+            await bookmarkService.notify(BookmarkNotification.updateNotification, document);
+        } catch (error) {
+            console.log(error);
+        }
+    }
+
+    static async _indexing(document: Document) {
+        try {
+            const searchIndexing = new SearchIndexing(Document);
+            if (!document.parentId) {
+                await searchIndexing.bulkIndex(DOCUMENT_INDEX, [await this.getDocumentData(document.id)]);
+            } else {
+                await searchIndexing.deleteIfExist(DOCUMENT_INDEX, [document.id]);
+                await searchIndexing.bulkIndex(DOCUMENT_INDEX, [await this.getDocumentData(document.id)]);
+                await searchIndexing.update(DOCUMENT_INDEX, await this.getDocumentData(document.parentId));
+            }
+        } catch (error) {
             throw error;
         }
     }
