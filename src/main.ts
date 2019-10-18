@@ -5,7 +5,6 @@ import * as bodyParser from 'body-parser';
 import { ValidationPipe } from '@nestjs/common';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import * as path from 'path';
-import * as socketio  from 'socket.io';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
@@ -29,10 +28,6 @@ async function bootstrap() {
 
   const document = SwaggerModule.createDocument(app, options);
   SwaggerModule.setup('/api-docs', app, document);
-
-  io.on('connection', function(socket){
-    console.log('A user connected ' + socket);
-  });
 
   await app.listen(process.env.PORT, process.env.HOST);
 }
