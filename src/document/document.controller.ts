@@ -82,7 +82,7 @@ export class DocumentController {
             if (error.message) {
                 return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ error: error.message });
             }
-            return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ error: error });
+            return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ error });
         }
     }
 

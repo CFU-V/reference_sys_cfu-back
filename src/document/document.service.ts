@@ -38,7 +38,7 @@ export class DocumentService {
     async addDocument(ownerId: number, filePath: string, document: DocumentDto) {
         let transaction;
         try {
-            transaction = this.documentRepository.sequelize.transaction();
+            transaction = await this.documentRepository.sequelize.transaction();
             if (document.old_version) {
                 const documents: FullDocumentDto[] = await this.documentRepository.sequelize.query(
                     'WITH RECURSIVE sub_documents(id, ' +
@@ -103,7 +103,7 @@ export class DocumentService {
                 visibility: document.visibility,
                 renew: document.renew,
                 link: filePath,
-            }, { transaction });
+            });
             transaction.commit();
             return newDoc;
         } catch (error) {
