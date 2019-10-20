@@ -85,7 +85,7 @@ export class MessageController {
         @Query('pageSize') pageSize: number,
     ) {
         try {
-            res.status(HttpStatus.OK).json(await this.messageService.getMessages(user.id));
+            res.status(HttpStatus.OK).json(await this.messageService.getMessages(user.id, page, pageSize));
         } catch (error) {
             return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ error: error.message });
         }
