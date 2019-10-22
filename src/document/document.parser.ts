@@ -86,9 +86,11 @@ export default class DocumentParser {
     public async extract(doc: Document, documentsTree: DocumentTreeDto): Promise<string> {
         try {
             let docPath = doc.link;
-            if (!doc.parentId) {
-                await this.format(documentsTree);
-                docPath = this.getPathForTempDocument(doc.link);
+            if (!doc.consultant_link) {
+                if (!doc.parentId) {
+                    await this.format(documentsTree);
+                    docPath = this.getPathForTempDocument(doc.link);
+                }
             }
             return new Promise(async (resolve, reject) => {
                 textract.fromFileWithPath(docPath, (error, text) => {

@@ -20,7 +20,9 @@ import { DocumentSrhareDto } from './dto/document.srhare.dto';
 import { User } from '../user/entities/user.entity';
 import { DocumentNewsDto } from './dto/document.news.dto';
 import * as moment from 'moment';
-import { Category } from "./entities/category.entity";
+import { Category } from './entities/category.entity';
+import * as request from 'request';
+import * as url from 'url';
 
 @Injectable()
 export class DocumentService {
@@ -33,6 +35,33 @@ export class DocumentService {
 
     async fetchCategories(): Promise<Category> {
         return await this.categoryRepository.findAll({ attributes: ['id', 'title'] });
+    }
+
+    async addDocumentFromConsultat(ownerId: number, document: DocumentDto) {
+
+    }
+
+    async downloadConsultantFile(consultantUrl) {
+        const link = url.parse(consultantUrl, true);
+        const correctUrl = `http://www.consultant.ru/cons/cgi/online.cgi?req=export&type=pdf&base=${link.query.base}&n=${link.query.n}&page=text`;
+        request(
+            {
+                uri: correctUrl,
+                headers: { 'Content-type' : 'applcation/pdf' },
+                encoding: null,
+            },
+            (error, res, body) => {
+            if (error) {
+                throw error;
+            } else {
+                if (res.statusCode === 200) {
+                    const filePath = `${process.env.DOCUMENT_STORAGE}/${Utils.getRandomFileName()}.pdf`;
+                    fs.writeFileSync(filePath, body, 'binary');
+                } else {
+                    console.log(res);
+                }
+            }
+        });
     }
 
     async addDocument(ownerId: number, filePath: string, document: DocumentDto) {

@@ -71,14 +71,22 @@ export class DocumentController {
       @Res() res,
       @Request() req,
       @Body() documentInfo: DocumentDto,
-      @UploadedFile() file,
+      @UploadedFile() file?,
     ) {
         try {
-            const document = await this.documentService.addDocument(req.user.id, file.path, documentInfo);
-            res.status(HttpStatus.OK).json(document);
-            logger.info(`ADD_DOCUMENT, : {user_id: ${req.user.id} }, document: ${JSON.stringify(document)}`);
+            if (!documentInfo.consultant_link) {
+                const document = await this.documentService.addDocument(req.user.id, file.path, documentInfo);
+                res.status(HttpStatus.OK).json(document);
+                logger.info(`ADD_DOCUMENT, : {user_id: ${req.user.id} }, document: ${JSON.stringify(document)}`);
+            } else {
+                this.documentService.downloadConsultantFile(documentInfo.consultant_link);
+                res.status(HttpStatus.OK).json({});
+            }
         } catch (error) {
-            Utils.deleteIfExist(file.path);
+            console.log(error);
+            if (file) {
+                Utils.deleteIfExist(file.path);
+            }
             if (error.message) {
                 return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ error: error.message });
             }

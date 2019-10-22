@@ -149,7 +149,9 @@ export class Document extends Model<Document> {
     @AfterCreate
     static async _afterCreate(document: Document) {
         try {
-            await Document._indexing(document);
+            if (document.link !== 'wait') {
+                await Document._indexing(document);
+            }
         } catch (error) {
             console.log(error);
             await document.destroy();

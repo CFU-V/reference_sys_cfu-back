@@ -8,7 +8,7 @@ import * as path from 'path';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
-  app.setGlobalPrefix('api');
+  // app.setGlobalPrefix('api');
   app.useGlobalPipes(new ValidationPipe({ transform: true }));
   app.use(bodyParser.json({limit: '50mb'}));
   app.use(bodyParser.urlencoded({limit: '50mb', extended: true, parameterLimit: 1000000}));

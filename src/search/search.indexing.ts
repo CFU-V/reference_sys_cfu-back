@@ -77,12 +77,12 @@ export class SearchIndexing implements OnModuleInit {
                             status: action[operation].status,
                             error: action[operation].error,
                             operation: bulkBody[i * 2],
-                            document: bulkBody[i * 2 + 1]
-                        })
+                            document: bulkBody[i * 2 + 1],
+                        });
                     }
                 });
 
-                console.log(`Errored documents: ${JSON.stringify(erroredDocuments)}`)
+                console.log(`Errored documents: ${JSON.stringify(erroredDocuments)}`);
             }
 
             const { body: count } = await esClient.count({ index });
