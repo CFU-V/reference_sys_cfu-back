@@ -17,8 +17,8 @@ export class MessageService implements OnModuleInit {
     @Client({
         transport: Transport.REDIS,
         options: {
-            url: 'redis://localhost:6379',
-        }
+            url: process.env.REDIS_URL,
+        },
     })
     private redis: ClientRedis;
     private redisClient: RedisClient;
@@ -27,7 +27,7 @@ export class MessageService implements OnModuleInit {
         await this.redis.connect();
         const sub = new Subject<Error>();
         sub.subscribe({
-            error: (error) => console.log(`[REDIS]: ${error}`)
+            error: (error) => console.log(`[REDIS]: ${error}`),
         });
         this.redisClient = this.redis.createClient(sub);
     }
@@ -59,13 +59,12 @@ export class MessageService implements OnModuleInit {
             transaction.commit();
             for (const recipientId of message.recipients) {
                 this.redisClient.get(recipientId, async (err, socketId) => {
-                    console.log(socketId);
                     const author = await this.userRepository.findOne({ where: { id: message.authorId }});
                     this.socketServer.sockets.connected[socketId].emit('message', {
                         author: `${author.firstName} ${author.lastName}`,
                         message: message.text,
-                    })
-                })
+                    });
+                });
             }
         } catch (error) {
             transaction.rollback();
