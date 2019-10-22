@@ -9,7 +9,6 @@ import { BookmarkModule } from './bookmarks/bookmark.module';
 import { SearchModule } from './search/search.module';
 import { LogsModule } from './logs/logs.module';
 import { MessageModule } from './messages/message.module';
-import {EventsModule} from "./events/events.module";
 
 @Module({
   imports: [
@@ -22,7 +21,6 @@ import {EventsModule} from "./events/events.module";
     SearchModule,
     LogsModule,
     MessageModule,
-    EventsModule
   ],
   controllers: [AppController],
   providers: [AppService],
