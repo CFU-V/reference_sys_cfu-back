@@ -79,14 +79,12 @@ export class DocumentController {
                 res.status(HttpStatus.OK).json(document);
                 logger.info(`ADD_DOCUMENT, : {user_id: ${req.user.id} }, document: ${JSON.stringify(document)}`);
             } else {
-                await this.documentService.addDocumentFromConsultant(req.user.id, documentInfo);
-                res.status(HttpStatus.OK).json({});
+                const document = await this.documentService.addDocumentFromConsultant(req.user.id, documentInfo);
+                res.status(HttpStatus.OK).json(document);
+                logger.info(`ADD_DOCUMENT, : {user_id: ${req.user.id} }, document: ${JSON.stringify(document)}`);
             }
         } catch (error) {
             console.log(error);
-            if (file) {
-                Utils.deleteIfExist(file.path);
-            }
             if (error.message) {
                 return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ error: error.message });
             }

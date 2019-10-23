@@ -10,6 +10,7 @@ export const COMMON_ROLE: string = 'common';
     Documents parsing.
  */
 export const DOCX_XML_PATH: string = 'word/document.xml';
+export const WAIT_LINK: string = 'wait';
 export const RELS_XML_PATH: string = 'word/_rels/document.xml.rels';
 export const CORE_XML_PATH: string = 'docProps/core.xml';
 export const DOCX_TPM_FOLDER_PATH: string = 'tmp';

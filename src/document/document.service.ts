@@ -1,4 +1,4 @@
-import { HttpException, HttpStatus, Inject, Injectable } from '@nestjs/common';
+import {HttpException, HttpStatus, Inject, Injectable, OnModuleInit} from '@nestjs/common';
 import { Document } from './entities/document.entity';
 import { EntitiesWithPaging } from '../common/paging/paging.entities';
 import { PAGE, PAGE_SIZE } from '../common/paging/paging.constants';
@@ -11,7 +11,7 @@ import { DocumentRecursiveDto } from './dto/document.tree.dto';
 import Utils from '../core/Utils';
 import * as path from 'path';
 import { mailService } from '../core/MailService';
-import { DOCX_TPM_FOLDER_PATH, SHARING_METHOD } from '../common/constants';
+import {DOCX_TPM_FOLDER_PATH, SHARING_METHOD, WAIT_LINK} from '../common/constants';
 import { DocumentPropertyDto } from './dto/document.property.dto';
 import { GetDocumentDto } from './dto/deocument.get.dto';
 import { Bookmark } from '../bookmarks/entities/bookmark.entity';
@@ -24,9 +24,10 @@ import { Category } from './entities/category.entity';
 import * as request from 'request';
 import * as url from 'url';
 import * as iconv from 'iconv-lite';
+import { CronJob } from "cron";
 
 @Injectable()
-export class DocumentService {
+export class DocumentService implements OnModuleInit {
     constructor(
         @Inject('DocumentRepository') private readonly documentRepository: typeof Document,
         @Inject('BookmarkRepository') private readonly bookmarkRepository: typeof Bookmark,
@@ -34,17 +35,54 @@ export class DocumentService {
         @Inject('UserRepository') private readonly userRepository: typeof User,
     ) {}
 
+    async onModuleInit() {
+        this.indexCronJob();
+    }
+
+    indexCronJob() {
+        return new CronJob('00 19 * * *', this.fetchDocuments.bind(this)).start();
+    }
+
+    async fetchDocuments(): Promise<void> {
+        try {
+            const docs = await this.documentRepository.findAll({ where: { link: process.env.WAIT_DOC_PAGE } });
+            for (const doc of docs) {
+                const downloadedDocumentLink = await this.downloadConsultantFile(doc.consultant_link);
+                if (downloadedDocumentLink) {
+                    await this.addDocument(doc.ownerId, downloadedDocumentLink, doc);
+                } else {
+                    await this.documentRepository.update({ link: process.env.BAD_DOC_PAGE }, { where: { id: doc.id } });
+                }
+            }
+        } catch (error) {
+            console.error(error)
+        }
+    }
+
     async fetchCategories(): Promise<Category> {
         return await this.categoryRepository.findAll({ attributes: ['id', 'title'] });
     }
 
-    async addDocumentFromConsultant(ownerId: number, document: DocumentDto): Promise<void> {
+    async addDocumentFromConsultant(ownerId: number, document: DocumentDto): Promise<Document> {
         try {
             const downloadedDocumentLink = await this.downloadConsultantFile(document.consultant_link);
             if (downloadedDocumentLink) {
-                await this.addDocument(ownerId, downloadedDocumentLink, document);
+                return await this.addDocument(ownerId, downloadedDocumentLink, document);
             } else {
-                
+                return await this.documentRepository.create({
+                    title: Utils.prettifyString(document.title),
+                    ownerId,
+                    parentId: document.parentId,
+                    info: document.info,
+                    categoryId: document.categoryId,
+                    active: document.active,
+                    old_version: document.old_version,
+                    number: Utils.prettifyDocumentNumber(document.number),
+                    consultant_link: document.consultant_link,
+                    visibility: document.visibility,
+                    renew: document.renew,
+                    link: process.env.WAIT_DOC_PAGE,
+                });
             }
         } catch (error) {
             console.log(error);
@@ -74,7 +112,12 @@ export class DocumentService {
                             if (iconv.decode(body, 'win1251').includes('В настоящее время текст документа недоступен')) {
                                 resolve(null);
                             } else {
-                                throw new HttpException('Неверная ссылка на документ. Такого документа не существует в базе КонсультантПлюс.', 404);
+                                reject(new HttpException(
+                                    'Неверная ссылка на документ. ' +
+                                    'Такого документа не существует в базе КонсультантПлюс. ' +
+                                    'Убедитесь, что ссылка скопирована верно и повторите запрос.',
+                                    404)
+                                );
                             }
                         }
                     }
@@ -122,6 +165,7 @@ export class DocumentService {
                         recursiveDocument.link,
                         recursiveDocument.parentId,
                         recursiveDocument.old_version,
+                        recursiveDocument.consultant_link,
                         recursiveDocument.number,
                         recursiveDocument.visibility,
                         recursiveDocument.renew,
@@ -147,6 +191,7 @@ export class DocumentService {
                 active: document.active,
                 old_version: document.old_version,
                 number: Utils.prettifyDocumentNumber(document.number),
+                consultant_link: document.consultant_link,
                 visibility: document.visibility,
                 renew: document.renew,
                 link: filePath,
@@ -156,6 +201,9 @@ export class DocumentService {
         } catch (error) {
             transaction.rollback();
             console.log(error);
+            if (filePath) {
+                Utils.deleteIfExist(filePath);
+            }
             throw error;
         }
     }
@@ -234,29 +282,41 @@ export class DocumentService {
     }
 
     async getDocument(id: number, user: any): Promise<GetDocumentDto> {
-        const documents: DocumentRecursiveDto[] = await this.documentRepository.sequelize.query(
-            'WITH RECURSIVE sub_documents(id, link, old_version, "parentId", info, level) AS (' +
-            `SELECT id, link, old_version, "parentId", info, 1 FROM documents WHERE id = :nodeId ${user ? '' : 'AND visibility = :visibility'} ` +
-            'UNION ALL ' +
-            'SELECT d.id, d.link, d.old_version, d."parentId", d.info, level+1 ' +
-            'FROM documents d, sub_documents sd ' +
-            'WHERE d."parentId" = sd.id) ' +
-            'SELECT id, link, old_version, "parentId", info, level FROM sub_documents ORDER BY level ASC, id ASC;',
-            {replacements: { nodeId: id, visibility: true }, type: QueryTypes.SELECT, mapToModel: true });
+        const document: Document = await this.documentRepository.findOne({ where: { id } });
+        if (document) {
+            if (!document.consultant_link) {
+                const documents: DocumentRecursiveDto[] = await this.documentRepository.sequelize.query(
+                    'WITH RECURSIVE sub_documents(id, link, old_version, "parentId", info, level) AS (' +
+                    `SELECT id, link, old_version, "parentId", info, 1 FROM documents WHERE id = :nodeId ${user ? '' : 'AND visibility = :visibility'} ` +
+                    'UNION ALL ' +
+                    'SELECT d.id, d.link, d.old_version, d."parentId", d.info, level+1 ' +
+                    'FROM documents d, sub_documents sd ' +
+                    'WHERE d."parentId" = sd.id) ' +
+                    'SELECT id, link, old_version, "parentId", info, level FROM sub_documents ORDER BY level ASC, id ASC;',
+                    {replacements: { nodeId: id, visibility: true }, type: QueryTypes.SELECT, mapToModel: true });
 
-        if (documents.length > 0) {
-            const response: GetDocumentDto = {
-                fileName: '',
-                info: '',
-            };
-            const documentParser = new DocumentParser();
-            const resultDocument: FormattedDocumentDto = await documentParser.format(await buildDocumentTree(documents, id));
-            response.fileName = resultDocument.resultedFileName;
-            response.info = resultDocument.info;
-            if (user) {
-                response.bookmarks =  await this.bookmarkRepository.findOne({ where: { userId: user.id, docId: id } });
+                const response: GetDocumentDto = {
+                    fileName: '',
+                    info: '',
+                };
+                const documentParser = new DocumentParser();
+                const resultDocument: FormattedDocumentDto = await documentParser.format(await buildDocumentTree(documents, id));
+                response.fileName = resultDocument.resultedFileName;
+                response.info = resultDocument.info;
+                if (user) {
+                    response.bookmarks =  await this.bookmarkRepository.findOne({ where: { userId: user.id, docId: id } });
+                }
+                return response;
+            } else {
+                const response: GetDocumentDto = {
+                    fileName: path.basename(document.link),
+                    info: document.info,
+                };
+                if (user) {
+                    response.bookmarks =  await this.bookmarkRepository.findOne({ where: { userId: user.id, docId: id } });
+                }
+                return response;
             }
-            return response;
         } else {
             throw new HttpException(`Document with id = ${id} dosen't exist or permission denied`, HttpStatus.NOT_FOUND);
         }

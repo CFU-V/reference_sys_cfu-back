@@ -19,7 +19,7 @@ export class Map {
             consultant_link: document.consultant_link,
             number: Utils.prettifyDocumentNumber(document.number),
             renew: document.renew.toString(),
-            registeredAt: await this.getRegisteredDataString(document.link),
+            registeredAt: document.consultant_link ? this.refCreatedAt(document.createdAt).toString() : await this.getRegisteredDataString(document.link),
             ownerId: document.ownerId,
             parentId: document.parentId,
             categoryId: document.categoryId,

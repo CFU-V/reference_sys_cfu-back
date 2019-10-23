@@ -6,6 +6,9 @@ Rest API of a CFU Reference System.
 ## Installation
 
 ```bash
+$ sudo apt-get update && sudo apt-get install -y xpdf
+$ pdftotext_path='/usr/bin';
+$ sudo /opt/bitnami/ctlscript.sh restart apache
 $ npm install
 ```
 

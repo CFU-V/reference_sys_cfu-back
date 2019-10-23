@@ -16,7 +16,7 @@ import { User } from '../../user/entities/user.entity';
 import { Category } from './category.entity';
 import { SearchIndexing } from '../../search/search.indexing';
 import { BookmarkService } from '../../bookmarks/bookmark.service';
-import { DOCUMENT_INDEX } from '../../common/constants';
+import {DOCUMENT_INDEX, WAIT_LINK} from '../../common/constants';
 import { Map } from '../../search/search.map';
 import DocumentParser from '../document.parser';
 import { DocumentRecursiveDto } from '../dto/document.tree.dto';
@@ -138,7 +138,12 @@ export class Document extends Model<Document> {
     @AfterUpdate
     static async _afterUpdate(document: Document) {
         try {
-            await Document._indexing(document);
+            if (
+                document.link !== process.env.BAD_DOC_PAGE &&
+                document.link !== process.env.WAIT_DOC_PAGE
+            ) {
+                await Document._indexing(document);
+            }
         } catch (error) {
             console.log(error);
             throw error;
@@ -149,7 +154,7 @@ export class Document extends Model<Document> {
     @AfterCreate
     static async _afterCreate(document: Document) {
         try {
-            if (document.link !== 'wait') {
+            if (document.link !== process.env.WAIT_DOC_PAGE) {
                 await Document._indexing(document);
             }
         } catch (error) {

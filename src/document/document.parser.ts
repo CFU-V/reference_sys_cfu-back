@@ -87,6 +87,7 @@ export default class DocumentParser {
         try {
             let docPath = doc.link;
             if (!doc.consultant_link) {
+                console.log(doc.consultant_link);
                 if (!doc.parentId) {
                     await this.format(documentsTree);
                     docPath = this.getPathForTempDocument(doc.link);
@@ -104,6 +105,7 @@ export default class DocumentParser {
                 });
             });
         } catch (error) {
+            console.log(error);
             throw error;
         }
     }
