@@ -79,7 +79,7 @@ export class DocumentController {
                 res.status(HttpStatus.OK).json(document);
                 logger.info(`ADD_DOCUMENT, : {user_id: ${req.user.id} }, document: ${JSON.stringify(document)}`);
             } else {
-                this.documentService.downloadConsultantFile(documentInfo.consultant_link);
+                await this.documentService.addDocumentFromConsultant(req.user.id, documentInfo);
                 res.status(HttpStatus.OK).json({});
             }
         } catch (error) {

@@ -23,6 +23,7 @@ import * as moment from 'moment';
 import { Category } from './entities/category.entity';
 import * as request from 'request';
 import * as url from 'url';
+import * as iconv from 'iconv-lite';
 
 @Injectable()
 export class DocumentService {
@@ -37,34 +38,51 @@ export class DocumentService {
         return await this.categoryRepository.findAll({ attributes: ['id', 'title'] });
     }
 
-    async addDocumentFromConsultat(ownerId: number, document: DocumentDto) {
-
+    async addDocumentFromConsultant(ownerId: number, document: DocumentDto): Promise<void> {
+        try {
+            const downloadedDocumentLink = await this.downloadConsultantFile(document.consultant_link);
+            if (downloadedDocumentLink) {
+                await this.addDocument(ownerId, downloadedDocumentLink, document);
+            } else {
+                
+            }
+        } catch (error) {
+            console.log(error);
+            throw error;
+        }
     }
 
-    async downloadConsultantFile(consultantUrl) {
-        const link = url.parse(consultantUrl, true);
-        const correctUrl = `http://www.consultant.ru/cons/cgi/online.cgi?req=export&type=pdf&base=${link.query.base}&n=${link.query.n}&page=text`;
-        request(
-            {
-                uri: correctUrl,
-                headers: { 'Content-type' : 'applcation/pdf' },
-                encoding: null,
-            },
-            (error, res, body) => {
-            if (error) {
-                throw error;
-            } else {
-                if (res.statusCode === 200) {
-                    const filePath = `${process.env.DOCUMENT_STORAGE}/${Utils.getRandomFileName()}.pdf`;
-                    fs.writeFileSync(filePath, body, 'binary');
-                } else {
-                    console.log(res);
-                }
-            }
+    async downloadConsultantFile(consultantUrl: string): Promise<string | null> {
+        return new Promise((resolve, reject) => {
+            const link = url.parse(consultantUrl, true);
+            const correctUrl = `http://www.consultant.ru/cons/cgi/online.cgi?req=export&type=pdf&base=${link.query.base}&n=${link.query.n}&page=text`;
+            request(
+                {
+                    uri: correctUrl,
+                    headers: { 'Content-type' : 'applcation/pdf' },
+                    encoding: null,
+                },
+                (error, res, body) => {
+                    if (error) {
+                        reject(error);
+                    } else {
+                        if (res.statusCode === 200) {
+                            const filePath = `${process.env.DOCUMENT_STORAGE}/${Utils.getRandomFileName()}.pdf`;
+                            fs.writeFileSync(filePath, body, 'binary');
+                            resolve(filePath)
+                        } else {
+                            if (iconv.decode(body, 'win1251').includes('В настоящее время текст документа недоступен')) {
+                                resolve(null);
+                            } else {
+                                throw new HttpException('Неверная ссылка на документ. Такого документа не существует в базе КонсультантПлюс.', 404);
+                            }
+                        }
+                    }
+                });
         });
     }
 
-    async addDocument(ownerId: number, filePath: string, document: DocumentDto) {
+    async addDocument(ownerId: number, filePath: string, document: DocumentDto): Promise<Document> {
         let transaction;
         try {
             transaction = await this.documentRepository.sequelize.transaction();
