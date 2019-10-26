@@ -1,18 +1,19 @@
 import { Map } from './search.map';
 import DocumentParser from '../document/document.parser';
 import { DOCUMENT_INDEX } from '../common/constants';
-import {Inject, Injectable, OnModuleInit} from "@nestjs/common";
-import { Document } from "../document/entities/document.entity";
-import { CronJob } from "cron";
-import { Category } from "../document/entities/category.entity";
-import {DocumentRecursiveDto} from "../document/dto/document.tree.dto";
-import {QueryTypes} from "sequelize";
-import {buildDocumentTree} from "../core/TreeBuilder";
+import { Inject, Injectable, OnModuleInit } from '@nestjs/common';
+import { Document } from '../document/entities/document.entity';
+import { CronJob } from 'cron';
+import { Category } from '../document/entities/category.entity';
+import { DocumentRecursiveDto } from '../document/dto/document.tree.dto';
+import { QueryTypes } from 'sequelize';
+import { buildDocumentTree } from '../core/TreeBuilder';
 const { Client } = require('@elastic/elasticsearch');
 const esClient = new Client({ node: process.env.ELASTIC_URI });
 
 @Injectable()
 export class SearchIndexing implements OnModuleInit {
+    static instance: SearchIndexing;
     constructor(
         @Inject('DocumentRepository') private readonly documentRepository: typeof Document,
     ) {}
@@ -23,6 +24,13 @@ export class SearchIndexing implements OnModuleInit {
 
     indexCronJob() {
        return new CronJob('0 */12 * * *', this._do.bind(this)).start();
+    }
+
+    static getInstance(documentRepository) {
+        if (!SearchIndexing.instance) {
+            SearchIndexing.instance = new SearchIndexing(documentRepository);
+        }
+        return SearchIndexing.instance;
     }
 
     async _do() {

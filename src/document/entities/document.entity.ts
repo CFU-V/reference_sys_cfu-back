@@ -16,7 +16,7 @@ import { User } from '../../user/entities/user.entity';
 import { Category } from './category.entity';
 import { SearchIndexing } from '../../search/search.indexing';
 import { BookmarkService } from '../../bookmarks/bookmark.service';
-import {DOCUMENT_INDEX, WAIT_LINK} from '../../common/constants';
+import { DOCUMENT_INDEX } from '../../common/constants';
 import { Map } from '../../search/search.map';
 import DocumentParser from '../document.parser';
 import { DocumentRecursiveDto } from '../dto/document.tree.dto';

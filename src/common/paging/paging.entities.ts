@@ -1,6 +1,5 @@
 import { Pagination } from './paging.interface';
 import { PAGE_SIZE, PAGE } from './paging.constants';
-import { Model } from 'sequelize-typescript';
 
 export class EntitiesWithPaging implements Pagination {
     private _entities: Array<any> = null;
@@ -16,7 +15,7 @@ export class EntitiesWithPaging implements Pagination {
     }
 
     public get entities(): Array<any> {
-        return this.entities;
+        return this._entities;
     }
 
     public get pageSize(): number {

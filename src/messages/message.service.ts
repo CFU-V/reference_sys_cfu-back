@@ -8,8 +8,8 @@ import { User } from '../user/entities/user.entity';
 import { SubscribeMessage, WebSocketGateway, WebSocketServer } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { Transport, Client, ClientRedis } from '@nestjs/microservices';
-import { RedisClient } from "@nestjs/microservices/external/redis.interface";
-import { Subject } from "rxjs";
+import { RedisClient } from '@nestjs/microservices/external/redis.interface';
+import { Subject } from 'rxjs';
 
 @WebSocketGateway()
 @Injectable()
@@ -43,8 +43,28 @@ export class MessageService implements OnModuleInit {
     @SubscribeMessage('identity')
     async identity(client: Socket, userId: number) {
         try {
-            await this.redisClient.set(userId, client.id);
+            this.redisClient.get(userId, async (err, clientSockets) => {
+                console.log(clientSockets);
+                if (clientSockets) {
+                    clientSockets = JSON.parse(clientSockets);
+                    clientSockets.push(client.id);
+                } else {
+                    clientSockets = [client.id];
+                }
+                this.redisClient.set(userId, JSON.stringify(clientSockets));
+            });
             return { success: true };
+        } catch (error) {
+            return { error };
+        }
+    }
+
+    @SubscribeMessage('log_out')
+    async disconnect(client: Socket, userId: number) {
+        try {
+            this.redisClient.del(userId, () => {
+                console.log(userId, 'disconnected');
+            });
         } catch (error) {
             return { error };
         }
@@ -57,13 +77,21 @@ export class MessageService implements OnModuleInit {
             const sentMessage = await this.messageRepository.create(message, { transaction });
             await sentMessage.addRecipient(message.recipients, { transaction });
             transaction.commit();
+            const author = await this.userRepository.findOne({ where: { id: message.authorId }});
             for (const recipientId of message.recipients) {
-                this.redisClient.get(recipientId, async (err, socketId) => {
-                    const author = await this.userRepository.findOne({ where: { id: message.authorId }});
-                    this.socketServer.sockets.connected[socketId].emit('message', {
-                        author: `${author.firstName} ${author.lastName}`,
-                        message: message.text,
-                    });
+                this.redisClient.get(recipientId, async (err, socketIds) => {
+                    socketIds = JSON.parse(socketIds);
+                    if (socketIds) {
+                        for (const socketId of socketIds) {
+                            console.log(socketId);
+                            if (this.socketServer.sockets.connected[socketId]) {
+                                this.socketServer.sockets.connected[socketId].emit('message', {
+                                    author: `${author.firstName} ${author.lastName}`,
+                                    message: message.text,
+                                });
+                            }
+                        }
+                    }
                 });
             }
         } catch (error) {

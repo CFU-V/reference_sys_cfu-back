@@ -41,14 +41,14 @@ export class SearchController {
         type: String,
     })
     @ApiImplicitQuery({
-        name: 'to',
-        description: 'End for pagination.',
+        name: 'page',
+        description: 'The number of pages',
         required: false,
         type: Number,
     })
     @ApiImplicitQuery({
-        name: 'from',
-        description: 'Start for pagination.',
+        name: 'pageSize',
+        description: 'The number of users in page',
         required: false,
         type: Number,
     })
@@ -64,13 +64,15 @@ export class SearchController {
         @Request() req,
         @User() user,
         @Query('search') search: string,
-        @Query('from') from: number,
-        @Query('to') to: number,
+        @Query('pageSize') pageSize: number,
+        @Query('page') page: number,
         @Query('content') content: string,
     ) {
         try {
             const visibility = !user;
-            const result = search ? await this.searchService.searchData(search, from, to, content, visibility) : await this.searchService.searchAllData(visibility);
+            const result = search ? await this.searchService
+                .searchData(search, page, pageSize, content, visibility) :
+                await this.searchService.searchAllData(page, pageSize, visibility);
             return res.status(HttpStatus.OK).json(result);
         } catch (error) {
             return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json(error);

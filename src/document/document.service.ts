@@ -11,7 +11,7 @@ import { DocumentRecursiveDto } from './dto/document.tree.dto';
 import Utils from '../core/Utils';
 import * as path from 'path';
 import { mailService } from '../core/MailService';
-import {DOCX_TPM_FOLDER_PATH, SHARING_METHOD, WAIT_LINK} from '../common/constants';
+import { DOCUMENT_INDEX, DOCX_TPM_FOLDER_PATH, DOWNLOAD_CONSULTANT_LINK, SHARING_METHOD, WAIT_LINK } from '../common/constants';
 import { DocumentPropertyDto } from './dto/document.property.dto';
 import { GetDocumentDto } from './dto/deocument.get.dto';
 import { Bookmark } from '../bookmarks/entities/bookmark.entity';
@@ -24,7 +24,10 @@ import { Category } from './entities/category.entity';
 import * as request from 'request';
 import * as url from 'url';
 import * as iconv from 'iconv-lite';
-import { CronJob } from "cron";
+import { CronJob } from 'cron';
+import { SearchService } from '../search/search.service';
+import { SearchIndexing } from '../search/search.indexing';
+import * as rimraf from 'rimraf';
 
 @Injectable()
 export class DocumentService implements OnModuleInit {
@@ -40,12 +43,58 @@ export class DocumentService implements OnModuleInit {
     }
 
     indexCronJob() {
-        return new CronJob('00 19 * * *', this.fetchDocuments.bind(this)).start();
+        new CronJob('00 19 * * *', this.fetchDocuments.bind(this)).start();
+        new CronJob('00 23 * * *', this.deleteIndexes.bind(this, 0, 100)).start();
+        new CronJob('00 03 * * *', this.deleteTempDocs.bind(this)).start();
+    }
+
+    async deleteIndexes(page?: number, pageSize?: number) {
+        try {
+            page = page > 0 ? page : PAGE;
+            pageSize = pageSize > 0 ? pageSize : PAGE_SIZE;
+            const searchService = SearchService.getInstance(this.documentRepository);
+            const searchIndexing = SearchIndexing.getInstance(this.documentRepository);
+            const elasticDocsEntity = await searchService.searchAllData(page, pageSize, false);
+            const elasticDocs = elasticDocsEntity.entities;
+            for (const elasticDoc of elasticDocs) {
+                const storeDoc = await this.documentRepository.findOne({ where: { id: elasticDoc._source.id } });
+                if (storeDoc) {
+                    searchIndexing.deleteIfExist(DOCUMENT_INDEX, [elasticDoc._id]);
+                }
+            }
+            page = page + 1;
+            const offset = pageSize * page;
+            if (offset <= elasticDocsEntity.totalItems) {
+                await this.deleteIndexes(page, pageSize);
+            }
+        } catch (error) {
+            console.error(error);
+        }
+    }
+
+    async deleteTempDocs() {
+        try {
+            const filePath = path.resolve(__dirname, DOCX_TPM_FOLDER_PATH);
+            rimraf(filePath, () => { console.log('TEMP DOCS DELETED'); });
+        } catch (error) {
+            console.error(error);
+        }
     }
 
     async fetchDocuments(): Promise<void> {
         try {
-            const docs = await this.documentRepository.findAll({ where: { link: process.env.WAIT_DOC_PAGE } });
+            const docs = await this.documentRepository.findAll({
+                where: {
+                    [Op.or] : [
+                        {
+                            link: process.env.WAIT_DOC_PAGE,
+                        },
+                        {
+                            renew: true,
+                        },
+                    ],
+                },
+            });
             for (const doc of docs) {
                 const downloadedDocumentLink = await this.downloadConsultantFile(doc.consultant_link);
                 if (downloadedDocumentLink) {
@@ -55,7 +104,7 @@ export class DocumentService implements OnModuleInit {
                 }
             }
         } catch (error) {
-            console.error(error)
+            console.error(error);
         }
     }
 
@@ -93,7 +142,7 @@ export class DocumentService implements OnModuleInit {
     async downloadConsultantFile(consultantUrl: string): Promise<string | null> {
         return new Promise((resolve, reject) => {
             const link = url.parse(consultantUrl, true);
-            const correctUrl = `http://www.consultant.ru/cons/cgi/online.cgi?req=export&type=pdf&base=${link.query.base}&n=${link.query.n}&page=text`;
+            const correctUrl = `${DOWNLOAD_CONSULTANT_LINK}&base=${link.query.base}&n=${link.query.n}&page=text`;
             request(
                 {
                     uri: correctUrl,
@@ -107,7 +156,7 @@ export class DocumentService implements OnModuleInit {
                         if (res.statusCode === 200) {
                             const filePath = `${process.env.DOCUMENT_STORAGE}/${Utils.getRandomFileName()}.pdf`;
                             fs.writeFileSync(filePath, body, 'binary');
-                            resolve(filePath)
+                            resolve(filePath);
                         } else {
                             if (iconv.decode(body, 'win1251').includes('В настоящее время текст документа недоступен')) {
                                 resolve(null);
@@ -116,7 +165,7 @@ export class DocumentService implements OnModuleInit {
                                     'Неверная ссылка на документ. ' +
                                     'Такого документа не существует в базе КонсультантПлюс. ' +
                                     'Убедитесь, что ссылка скопирована верно и повторите запрос.',
-                                    404)
+                                    404),
                                 );
                             }
                         }

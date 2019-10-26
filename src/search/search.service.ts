@@ -7,11 +7,14 @@ import { ISearchResponseInterface } from "./dto/search.response.interface";
 import { IndexedDocumentDto } from "../document/dto/document.dto";
 import { ISearchBodyInterface } from "./dto/search.body.interface";
 import { IMustQuery } from "./dto/must.query.interface";
+import { PAGE, PAGE_SIZE } from '../common/paging/paging.constants';
+import { EntitiesWithPaging } from '../common/paging/paging.entities';
 const { Client } = require('@elastic/elasticsearch');
 const esClient = new Client({ node: process.env.ELASTIC_URI });
 
 @Injectable()
 export class SearchService {
+    static instance: SearchService;
     constructor(
         @Inject('DocumentRepository') private readonly documentRepository: typeof Document,
     ) {}
@@ -22,7 +25,14 @@ export class SearchService {
         } catch (error) {
             throw error;
         }
-    };
+    }
+
+    static getInstance(documentRepository) {
+        if (!SearchService.instance) {
+            SearchService.instance = new SearchService(documentRepository);
+        }
+        return SearchService.instance;
+    }
 
     private getShouldQuery(queries: Array<string>): Array<object> {
         try {
@@ -54,7 +64,7 @@ export class SearchService {
         }
     }
 
-    private getMustQuery(fieldsQuery: Array<IFieldQuery>): Array<object> {
+    private getMustQuery(fieldsQuery: IFieldQuery[]): Array<object> {
         try {
             const must = [];
 
@@ -86,8 +96,15 @@ export class SearchService {
         }
     };
 
-    async searchAllData(visibility: boolean = true) {
+    async searchAllData(
+        page: number = 0,
+        pageSize: number = 10,
+        visibility: boolean = true,
+    ): Promise<EntitiesWithPaging> {
         try {
+            page = page > 0 ? page : PAGE;
+            pageSize = pageSize > 0 ? pageSize : PAGE_SIZE;
+            const offset: number = pageSize * page;
             const must = [];
 
             if (visibility) {
@@ -101,13 +118,13 @@ export class SearchService {
             }
 
             const body = {
-                size: 20,
-                from: 0,
+                size: pageSize,
+                from: offset,
                 query: { bool: { must } },
             };
 
             const results = await this.search(ALL_INDEX, body);
-            return results.body.hits.hits;
+            return new EntitiesWithPaging(results.body.hits.hits, results.body.hits.total.value, page, pageSize);
         } catch (error) {
             return error;
         }
@@ -115,12 +132,15 @@ export class SearchService {
 
     async searchData(
         query: string,
-        from: number = 0,
-        size: number = 10,
+        page: number = 0,
+        pageSize: number = 10,
         content: string = ALL_INDEX,
         visibility: boolean = true,
-    ): Promise<Array<object>> {
+    ): Promise<EntitiesWithPaging> {
         try {
+            page = page > 0 ? page : PAGE;
+            pageSize = pageSize > 0 ? pageSize : PAGE_SIZE;
+            const offset: number = pageSize * page;
             const should = this.getShouldQuery(query.split('|'));
             const must = [];
             must.push({ bool: { should } });
@@ -136,14 +156,14 @@ export class SearchService {
             }
 
             const body: ISearchBodyInterface<IMustQuery> = {
-                size,
-                from,
+                size: pageSize,
+                from: offset,
                 query: { bool: { must } },
             };
 
             const results: ISearchResponseInterface<IndexedDocumentDto> = await this.search(content, body);
             console.log(`found ${results.body.hits.total.value} items in ${results.body.took}ms`);
-            return results.body.hits.hits;
+            return new EntitiesWithPaging(results.body.hits.hits, results.body.hits.total.value, page, pageSize);
         } catch (error) {
             console.log(error);
             return error;
@@ -151,13 +171,16 @@ export class SearchService {
     }
 
     async searchByFields(
-        fieldsQuery: Array<IFieldQuery>,
-        from: number = 0,
-        size: number = 10,
+        fieldsQuery: IFieldQuery[],
+        page: number = 0,
+        pageSize: number = 10,
         content: string = ALL_INDEX,
         visibility: boolean = true,
-    ): Promise<Array<object>> {
+    ): Promise<EntitiesWithPaging> {
         try {
+            page = page > 0 ? page : PAGE;
+            pageSize = pageSize > 0 ? pageSize : PAGE_SIZE;
+            const offset: number = pageSize * page;
             const must = await this.getMustQuery(fieldsQuery);
 
             if (visibility) {
@@ -171,8 +194,8 @@ export class SearchService {
             }
 
             const body: ISearchBodyInterface<IMustQuery> = {
-                size,
-                from,
+                size: pageSize,
+                from: offset,
                 query: {
                     bool: { must },
                 },
@@ -180,7 +203,7 @@ export class SearchService {
 
             const results: ISearchResponseInterface<IndexedDocumentDto> = await this.search(content, body);
             console.log(`found ${results.body.hits.total.value} items in ${results.body.took}ms`);
-            return results.body.hits.hits;
+            return new EntitiesWithPaging(results.body.hits.hits, results.body.hits.total.value, page, pageSize);
         } catch (error) {
             console.log(error);
             return error;
