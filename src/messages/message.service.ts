@@ -44,7 +44,6 @@ export class MessageService implements OnModuleInit {
     async identity(client: Socket, userId: number) {
         try {
             this.redisClient.get(userId, async (err, clientSockets) => {
-                console.log(clientSockets);
                 if (clientSockets) {
                     clientSockets = JSON.parse(clientSockets);
                     clientSockets.push(client.id);
@@ -62,8 +61,13 @@ export class MessageService implements OnModuleInit {
     @SubscribeMessage('log_out')
     async disconnect(client: Socket, userId: number) {
         try {
-            this.redisClient.del(userId, () => {
-                console.log(userId, 'disconnected');
+            this.redisClient.get(userId, async (err, clientSockets) => {
+                if (clientSockets) {
+                    clientSockets = JSON.parse(clientSockets);
+                    const index = clientSockets.indexOf(client.id);
+                    clientSockets.splice(index, 1);
+                }
+                this.redisClient.set(userId, JSON.stringify(clientSockets));
             });
         } catch (error) {
             return { error };
@@ -83,7 +87,6 @@ export class MessageService implements OnModuleInit {
                     socketIds = JSON.parse(socketIds);
                     if (socketIds) {
                         for (const socketId of socketIds) {
-                            console.log(socketId);
                             if (this.socketServer.sockets.connected[socketId]) {
                                 this.socketServer.sockets.connected[socketId].emit('message', {
                                     author: `${author.firstName} ${author.lastName}`,
