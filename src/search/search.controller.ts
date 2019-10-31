@@ -93,8 +93,8 @@ export class SearchController {
             const visibility = !user;
             const result = await this.searchService.searchByFields(
                 searchByField.fieldsQuery,
-                searchByField.from,
-                searchByField.to,
+                searchByField.page,
+                searchByField.pageSize,
                 searchByField.content,
                 visibility,
             );

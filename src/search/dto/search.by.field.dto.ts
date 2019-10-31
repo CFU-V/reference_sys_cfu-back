@@ -3,9 +3,9 @@ import { IFieldQuery } from './field.query.interface';
 
 export class SearchByFieldDto {
     @ApiModelProperty()
-    from: number;
+    page: number;
     @ApiModelProperty()
-    to: number;
+    pageSize: number;
     @ApiModelProperty()
     content: string;
     @ApiModelProperty({ type: [IFieldQuery] })
