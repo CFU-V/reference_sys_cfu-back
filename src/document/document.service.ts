@@ -487,6 +487,8 @@ export class DocumentService implements OnModuleInit {
             const fileName = path.basename(document.link);
             if (fs.existsSync(path.resolve(__dirname, `${DOCX_TPM_FOLDER_PATH}/${fileName}`))) {
                 return fs.createReadStream(path.resolve(__dirname, `${DOCX_TPM_FOLDER_PATH}/${fileName}`));
+            } else if (fs.existsSync(path.resolve(process.env.DOCUMENT_STORAGE, fileName))) {
+                return fs.createReadStream(path.resolve(process.env.DOCUMENT_STORAGE, fileName));
             } else if (fileName === WAIT_DOC_NAME) {
                 return fs.createReadStream(process.env.WAIT_DOC_PAGE);
             } else if (fileName === BAD_DOC_NAME) {
