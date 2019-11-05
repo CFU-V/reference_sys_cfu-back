@@ -13,11 +13,11 @@ import * as path from 'path';
 import { mailService } from '../core/MailService';
 import {
     DOCUMENT_INDEX,
-    DOCX_TEMPLATES_FOLDER_PATH,
+    BAD_DOC_NAME,
     DOCX_TPM_FOLDER_PATH,
     DOWNLOAD_CONSULTANT_LINK,
     SHARING_METHOD,
-    WAIT_LINK,
+    WAIT_DOC_NAME,
 } from '../common/constants';
 import { DocumentPropertyDto } from './dto/document.property.dto';
 import { GetDocumentDto } from './dto/deocument.get.dto';
@@ -487,8 +487,10 @@ export class DocumentService implements OnModuleInit {
             const fileName = path.basename(document.link);
             if (fs.existsSync(path.resolve(__dirname, `${DOCX_TPM_FOLDER_PATH}/${fileName}`))) {
                 return fs.createReadStream(path.resolve(__dirname, `${DOCX_TPM_FOLDER_PATH}/${fileName}`));
-            } else if (fs.existsSync(path.resolve(__dirname, `${DOCX_TEMPLATES_FOLDER_PATH}/${fileName}`))) {
-                return fs.createReadStream(path.resolve(__dirname, `${DOCX_TEMPLATES_FOLDER_PATH}/${fileName}`));
+            } else if (fileName === WAIT_DOC_NAME) {
+                return fs.createReadStream(process.env.WAIT_DOC_PAGE);
+            } else if (fileName === BAD_DOC_NAME) {
+                return fs.createReadStream(process.env.BAD_DOC_PAGE);
             } else {
                 throw new HttpException(
                     `File with name ${fileName} dosen't exist, try to call /document?id=${id}`,
