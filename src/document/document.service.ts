@@ -11,7 +11,14 @@ import { DocumentRecursiveDto } from './dto/document.tree.dto';
 import Utils from '../core/Utils';
 import * as path from 'path';
 import { mailService } from '../core/MailService';
-import { DOCUMENT_INDEX, DOCX_TPM_FOLDER_PATH, DOWNLOAD_CONSULTANT_LINK, SHARING_METHOD, WAIT_LINK } from '../common/constants';
+import {
+    DOCUMENT_INDEX,
+    DOCX_TEMPLATES_FOLDER_PATH,
+    DOCX_TPM_FOLDER_PATH,
+    DOWNLOAD_CONSULTANT_LINK,
+    SHARING_METHOD,
+    WAIT_LINK,
+} from '../common/constants';
 import { DocumentPropertyDto } from './dto/document.property.dto';
 import { GetDocumentDto } from './dto/deocument.get.dto';
 import { Bookmark } from '../bookmarks/entities/bookmark.entity';
@@ -480,6 +487,8 @@ export class DocumentService implements OnModuleInit {
             const fileName = path.basename(document.link);
             if (fs.existsSync(path.resolve(__dirname, `${DOCX_TPM_FOLDER_PATH}/${fileName}`))) {
                 return fs.createReadStream(path.resolve(__dirname, `${DOCX_TPM_FOLDER_PATH}/${fileName}`));
+            } else if (fs.existsSync(path.resolve(__dirname, `${DOCX_TEMPLATES_FOLDER_PATH}/${fileName}`))) {
+                return fs.createReadStream(path.resolve(__dirname, `${DOCX_TEMPLATES_FOLDER_PATH}/${fileName}`));
             } else {
                 throw new HttpException(
                     `File with name ${fileName} dosen't exist, try to call /document?id=${id}`,
