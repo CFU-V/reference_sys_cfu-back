@@ -10,11 +10,11 @@ export const COMMON_ROLE: string = 'common';
     Documents parsing.
  */
 export const DOCX_XML_PATH: string = 'word/document.xml';
-export const WAIT_LINK: string = 'wait';
 export const RELS_XML_PATH: string = 'word/_rels/document.xml.rels';
 export const CORE_XML_PATH: string = 'docProps/core.xml';
 export const DOCX_TPM_FOLDER_PATH: string = 'tmp';
-export const DOCX_TEMPLATES_FOLDER_PATH: string = 'templates';
+export const WAIT_DOC_NAME: string = 'wait_doc_page.docx';
+export const BAD_DOC_NAME: string = 'bad_doc_page.docx';
 export const DOWNLOAD_CONSULTANT_LINK: string = 'http://www.consultant.ru/cons/cgi/online.cgi?req=export&type=pdf';
 export const PROPERTY_FIELDS: object = {
     'dc\\:title': 'title',
