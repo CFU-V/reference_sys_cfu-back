@@ -41,7 +41,6 @@ export class SearchIndexing implements OnModuleInit {
             };
 
             const documents = await this.documentRepository.findAll({
-                where: { parentId: null },
                 include: [{model: Category, as: 'category', attributes: ['title']}]
             });
 
