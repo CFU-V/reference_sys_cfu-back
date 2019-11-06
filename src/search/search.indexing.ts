@@ -45,7 +45,7 @@ export class SearchIndexing implements OnModuleInit {
             });
 
             for (const document of documents) {
-                let documents: Array<DocumentRecursiveDto> = await this.documentRepository.sequelize.query(
+                const documentsTree: DocumentRecursiveDto[] = await this.documentRepository.sequelize.query(
                     'WITH RECURSIVE sub_documents(id, link, "parentId", level) AS (' +
                     `SELECT id, link, "parentId", 1 FROM documents WHERE id = :nodeId ` +
                     'UNION ALL ' +
@@ -56,7 +56,7 @@ export class SearchIndexing implements OnModuleInit {
                     {replacements: { nodeId: document.id }, type: QueryTypes.SELECT, mapToModel: true });
 
                 const documentParser = new DocumentParser();
-                document.setDataValue('text', await documentParser.extract(document.link, await buildDocumentTree(documents, document.id)));
+                document.setDataValue('text', await documentParser.extract(document, await buildDocumentTree(documentsTree, document.id)));
                 const item = await Map.documents(document.get({ plain: true }));
                 data.documents.push(item);
             }
