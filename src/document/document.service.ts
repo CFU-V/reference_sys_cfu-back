@@ -139,7 +139,7 @@ export class DocumentService implements OnModuleInit {
                     visibility: document.visibility,
                     renew: document.renew,
                     link: process.env.WAIT_DOC_PAGE,
-                    date: document.date,
+                    date: new Date(document.date),
                 });
             }
         } catch (error) {
@@ -227,7 +227,7 @@ export class DocumentService implements OnModuleInit {
                         recursiveDocument.number,
                         recursiveDocument.visibility,
                         recursiveDocument.renew,
-                        recursiveDocument.date,
+                        new Date(recursiveDocument.date),
                         false]);
                 }
 
@@ -536,7 +536,7 @@ export class DocumentService implements OnModuleInit {
                     visibility: document.visibility ? document.visibility : oldDoc.visibility,
                     link: filePath ? filePath : oldDoc.link,
                     renew: document.renew ? document.renew : oldDoc.renew,
-                    date: document.date ? Map.refCreatedAt(new Date(document.date)).toString() : oldDoc.date,
+                    date: document.date ? new Date(document.date) : oldDoc.date,
                 }, { transaction });
                 transaction.commit();
                 return updatedDoc;
