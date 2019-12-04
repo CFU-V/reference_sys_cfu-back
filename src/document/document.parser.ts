@@ -19,8 +19,9 @@ import { Document } from './entities/document.entity';
 import { HttpException } from '@nestjs/common';
 import { BodyDocumentPropertyDto } from './dto/document.body.property.dto';
 import { IExtractedDocument } from './interfaces/extractedDocument';
-
+import * as dotenv from 'dotenv';
 const cheerioOptions = {decodeEntities: false, xmlMode: true, normalizeTags: true, normalizeWhitespace: true};
+dotenv.config();
 
 export default class DocumentParser {
     private xmlParser: convert.Parser;

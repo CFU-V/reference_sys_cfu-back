@@ -4,6 +4,8 @@ import * as convert from 'xml-js';
 import { IMergedDocument } from '../interfaces/merged.document.interface';
 import { hasOwnProperty } from 'tslint/lib/utils';
 import { MergeDocumentDto } from '../dto/merge.document.dto';
+import * as dotenv from 'dotenv';
+dotenv.config();
 
 /**
  * Класс для объединения содержимого документов в один главный документ
