@@ -93,7 +93,10 @@ export default class DocumentParser {
                 }
             }
 
-            formattedDocument.formatted = this.addChildList(documentsTree.childrens, formattedDocument.formatted);
+            if (documentsTree.childrens.length > 0) {
+                formattedDocument.formatted = this.addChildList(documentsTree.id, documentsTree.childrens, formattedDocument.formatted);
+                formattedDocument.formatted = this.addSource(documentsTree.id, formattedDocument.formatted);
+            }
             formattedDocument.resultedFileName = await this.saveDocx(zip, formattedDocument.formatted, formattedDocument.relsXml, documentsTree);
             return formattedDocument;
         } catch (error) {
@@ -164,7 +167,7 @@ export default class DocumentParser {
         }
     }
 
-    public addChildList(childs: DocumentTreeDto[], $: CheerioStatic): CheerioStatic {
+    public addChildList(id: number, childs: DocumentTreeDto[], $: CheerioStatic): CheerioStatic {
         let str = $.xml();
         let endIndex = str.indexOf('<w:body>') + '<w:body>'.length;
         str = str.slice(0, endIndex) +
@@ -180,13 +183,13 @@ export default class DocumentParser {
                 str = str.slice(0, forEndIndex) +
                 '<w:p>' +
                 '<w:r>' +
-                `<w:t>${childs.length - i}. Изменение от: </w:t>` +
+                `<w:t>${childs.length - i}. Изменения от: </w:t>` +
                 '</w:r>' +
                 '<w:r>' +
                     '<w:fldChar w:fldCharType="begin" />' +
                 '</w:r>' +
                 '<w:r>' +
-                `<w:instrText> HYPERLINK " ${process.env.APP_URL}/docview/${child.id}"</w:instrText>` +
+                `<w:instrText> HYPERLINK " ${process.env.APP_URL}/docview/${id}?date=${child.date.getFullYear()}-${child.date.getMonth() + 1}-${child.date.getDate()}"</w:instrText>` +
                 '</w:r>' +
                 '<w:r>' +
                     '<w:fldChar w:fldCharType="separate" />' +
@@ -214,6 +217,40 @@ export default class DocumentParser {
             '<w:p>' +
             '<w:r>' +
             `<w:t>Список изменений:</w:t>` +
+            '</w:r>' +
+            '</w:p>' +
+            str.slice(endIndex);
+        return cheerio.load(str, cheerioOptions);
+    }
+
+    public addSource(id: number, $: CheerioStatic): CheerioStatic {
+        let str = $.xml();
+        const endIndex = str.indexOf('<w:body>') + '<w:body>'.length;
+        str = str.slice(0, endIndex) +
+            '<w:p>' +
+            '<w:r>' +
+            `<w:t>Исходный документ можно просмотреть </w:t>` +
+            '</w:r>' +
+            '<w:r>' +
+            '<w:fldChar w:fldCharType="begin" />' +
+            '</w:r>' +
+            '<w:r>' +
+            `<w:instrText> HYPERLINK " ${process.env.APP_URL}/docview/${id}?source=true"</w:instrText>` +
+            '</w:r>' +
+            '<w:r>' +
+            '<w:fldChar w:fldCharType="separate" />' +
+            '</w:r>' +
+            '<w:r>' +
+            '<w:rPr>' +
+            '<w:color w:val="0000FF"/>' +
+            '</w:rPr>' +
+            `<w:t xml:space="preserve"> тут</w:t>` +
+            '</w:r>' +
+            '<w:r>' +
+            '<w:fldChar w:fldCharType="end" />' +
+            '</w:r>' +
+            '<w:r>' +
+            '<w:t>.</w:t>' +
             '</w:r>' +
             '</w:p>' +
             str.slice(endIndex);

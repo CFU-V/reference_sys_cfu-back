@@ -328,7 +328,7 @@ export default class DocumentMerger {
                             paragraphsXml[bookmarkXml.start + j],
                             true);
                     }
-                    mainParagraphs = this.addLinkOfChild(mainParagraphs, mainBookmarks[mainBookmarkIndex].end, doc, IsText.length < 4 ? 'Удалено от' : 'Изменения от');
+                    mainParagraphs = this.addLinkOfChild(mainParagraphs, mainBookmarks[mainBookmarkIndex].end, doc, IsText.length < 4 ? 'Удалено от' : 'Изменение от');
                 } else {
                     console.log(2)
                     if (bookmarkXml.countParagraphs > mainBookmark.countParagraphs) {
@@ -509,7 +509,7 @@ export default class DocumentMerger {
                             }
                         }
                     }
-                    mainParagraphs = this.addLinkOfChild(mainParagraphs, mainBookmarks[mainBookmarkIndex].end, doc, IsText.length < 4 ? 'Удалено от' : 'Изменения от');
+                    mainParagraphs = this.addLinkOfChild(mainParagraphs, mainBookmarks[mainBookmarkIndex].end, doc, IsText.length < 4 ? 'Удалено от' : 'Изменение от');
                 }
             }
             return {
@@ -534,20 +534,6 @@ export default class DocumentMerger {
         if (startIndex > mainParagraphs[index].elements.length) {
             startIndex = mainParagraphs[index].elements.length;
         }
-        // arrayOfElements
-        //     .push(
-        //         {
-        //             attributes: { 'w:rsidRPr': '00142DBF' },
-        //             name: 'w:r',
-        //             type: 'element',
-        //             elements: [
-        //                 {
-        //                     type: 'element',
-        //                     name: 'w:br',
-        //                     attributes: {},
-        //                 },
-        //             ],
-        //         });
         arrayOfElements
             .push(
                 {
@@ -817,24 +803,6 @@ export default class DocumentMerger {
         }
     }
 
-    // /**
-    //  * Заменить тег w:r в paragraph на тот что в otherParagraph
-    //  * @param {{}} paragraph
-    //  * @param {{}} otherParagraph
-    //  * @returns {{}} Возвращает paragraph
-    //  */
-    // private replaceTextFromParagraph(paragraph: any[], otherParagraph: any[]): any[] {
-    //     if (
-    //         !paragraph ||
-    //         !otherParagraph ||
-    //         !otherParagraph['w:r'] ||
-    //         !paragraph['w:r']
-    //     ) {
-    //         return paragraph;
-    //     }
-    //     paragraph['w:r'] = otherParagraph['w:r'];
-    //     return paragraph;
-    // }
 
     /**
      * Заменить тэги в paragraph на те что в otheParagraph кроме bookmarkStart,bookmarkEnd

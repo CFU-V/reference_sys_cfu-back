@@ -33,6 +33,7 @@ import { GetDocumentDto } from './dto/deocument.get.dto';
 import { DocumentSrhareDto } from './dto/document.srhare.dto';
 import { DOCX_CONTENT_TYPE } from '../common/constants';
 import { DocumentNewsDto } from './dto/document.news.dto';
+import { stream } from 'winston';
 
 @ApiUseTags('document')
 @ApiBearerAuth()
@@ -162,15 +163,28 @@ export class DocumentController {
         required: true,
         type: Number,
     })
+    @ApiImplicitQuery({
+        name: 'date',
+        description: 'Get spec revision',
+        required: false,
+        type: String,
+    })
+    @ApiImplicitQuery({
+        name: 'source',
+        description: 'Get source doc',
+        required: false,
+        type: Boolean,
+    })
     async getDocument(
         @Res() res,
         @Request() req,
         @Query('id') id: number,
-        @Query('date') date?: number,
+        @Query('date') date?: string,
+        @Query('source') source?: boolean,
     ) {
         try {
             const user = await this.userService.verifyByToken(req.headers.authorization);
-            const response = await this.documentService.getDocument(id, user);
+            const response = await this.documentService.getDocument(id, user, date, source ? source.toString() : null);
             return res.status(HttpStatus.OK).json(response);
         } catch (error) {
             console.log(error);

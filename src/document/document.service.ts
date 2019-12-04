@@ -341,32 +341,47 @@ export class DocumentService implements OnModuleInit {
         }
     }
 
-    async getDocument(id: number, user: any): Promise<GetDocumentDto> {
+    async getDocument(id: number, user: any, date?: string, source?: string): Promise<GetDocumentDto> {
         const document: Document = await this.documentRepository.findOne({ where: { id } });
         if (document) {
             if (!document.consultant_link) {
-                const documents: DocumentRecursiveDto[] = await this.documentRepository.sequelize.query(
-                    'WITH RECURSIVE sub_documents(id, link, old_version, "parentId", info, "date", level) AS (' +
-                    `SELECT id, link, old_version, "parentId", info, "date", 1 FROM documents WHERE id = :nodeId ${user ? '' : 'AND visibility = :visibility'} ` +
-                    'UNION ALL ' +
-                    'SELECT d.id, d.link, d.old_version, d."parentId", d.info, d."date", level+1 ' +
-                    'FROM documents d, sub_documents sd ' +
-                    'WHERE d."parentId" = sd.id) ' +
-                    'SELECT id, link, old_version, "parentId", info, "date", level FROM sub_documents ORDER BY level ASC, id ASC;',
-                    {replacements: { nodeId: id, visibility: true }, type: QueryTypes.SELECT, mapToModel: true });
+                if (source !== 'true') {
+                    const documents: DocumentRecursiveDto[] = await this.documentRepository.sequelize.query(
+                        'WITH RECURSIVE sub_documents(id, link, old_version, "parentId", info, "date", level) AS (' +
+                        `SELECT id, link, old_version, "parentId", info, "date", 1 FROM documents WHERE id = :nodeId ${user ? '' : 'AND visibility = :visibility'} ` +
+                        'UNION ALL ' +
+                        'SELECT d.id, d.link, d.old_version, d."parentId", d.info, d."date", level+1 ' +
+                        'FROM documents d, sub_documents sd ' +
+                        `WHERE d."parentId" = sd.id ${date ? 'AND d.date < :date' : ''}) ` +
+                        'SELECT id, link, old_version, "parentId", info, "date", level FROM sub_documents ORDER BY level ASC, id ASC;',
+                        {replacements: { nodeId: id, visibility: true, date: date ? new Date(date) : '' }, type: QueryTypes.SELECT, mapToModel: true });
 
-                const response: GetDocumentDto = {
-                    fileName: '',
-                    info: '',
-                };
-                const documentParser = new DocumentParser();
-                const resultDocument: FormattedDocumentDto = await documentParser.format(await buildDocumentTree(documents, id));
-                response.fileName = resultDocument.resultedFileName;
-                response.info = resultDocument.info;
-                if (user) {
-                    response.bookmarks =  await this.bookmarkRepository.findOne({ where: { userId: user.id, docId: id } });
+                    const response: GetDocumentDto = {
+                        fileName: '',
+                        info: '',
+                    };
+                    const documentParser = new DocumentParser();
+                    const resultDocument: FormattedDocumentDto = await documentParser.format(await buildDocumentTree(documents, id));
+                    response.fileName = resultDocument.resultedFileName;
+                    response.info = resultDocument.info;
+                    if (user) {
+                        response.bookmarks =  await this.bookmarkRepository.findOne({ where: { userId: user.id, docId: id } });
+                    }
+                    return response;
+                } else {
+                    const response: GetDocumentDto = {
+                        fileName: '',
+                        info: '',
+                    };
+                    const documentParser = new DocumentParser();
+                    const resultDocument: FormattedDocumentDto = await documentParser.format(await buildDocumentTree([document], id));
+                    response.fileName = resultDocument.resultedFileName;
+                    response.info = resultDocument.info;
+                    if (user) {
+                        response.bookmarks =  await this.bookmarkRepository.findOne({ where: { userId: user.id, docId: id } });
+                    }
+                    return response;
                 }
-                return response;
             } else {
                 const response: GetDocumentDto = {
                     fileName: path.basename(document.link),
