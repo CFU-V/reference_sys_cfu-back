@@ -166,6 +166,7 @@ export class DocumentController {
         @Res() res,
         @Request() req,
         @Query('id') id: number,
+        @Query('date') date?: number,
     ) {
         try {
             const user = await this.userService.verifyByToken(req.headers.authorization);
