@@ -100,6 +100,10 @@ export class Document extends Model<Document> {
     @Column({type: DataType.DATE, onUpdate: 'SET DEFAULT'})
     updatedAt: Date;
 
+    @AllowNull(false)
+    @Column({type: DataType.DATE})
+    date: Date;
+
     @ForeignKey(() => User)
     @Column({
         type: DataType.INTEGER(),
@@ -203,13 +207,13 @@ export class Document extends Model<Document> {
             });
 
             const documents: DocumentRecursiveDto[] = await this.sequelize.query(
-                'WITH RECURSIVE sub_documents(id, link, "parentId", level) AS (' +
-                `SELECT id, link, "parentId", 1 FROM documents WHERE id = :nodeId ` +
+                'WITH RECURSIVE sub_documents(id, link, "parentId", "date", level) AS (' +
+                `SELECT id, link, "parentId", "date", 1 FROM documents WHERE id = :nodeId ` +
                 'UNION ALL ' +
-                'SELECT d.id, d.link, d."parentId", level+1 ' +
+                'SELECT d.id, d.link, d."parentId", d."date", level+1 ' +
                 'FROM documents d, sub_documents sd ' +
                 'WHERE d."parentId" = sd.id) ' +
-                'SELECT id, link, "parentId", level FROM sub_documents ORDER BY level ASC, id ASC;',
+                'SELECT id, link, "parentId", "date", level FROM sub_documents ORDER BY level ASC, id ASC;',
                 {replacements: { nodeId: id }, type: QueryTypes.SELECT, mapToModel: true });
             const documentParser = new DocumentParser();
             doc.setDataValue('text', await documentParser.extract(doc, await buildDocumentTree(documents, id)));

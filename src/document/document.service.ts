@@ -35,6 +35,7 @@ import { CronJob } from 'cron';
 import { SearchService } from '../search/search.service';
 import { SearchIndexing } from '../search/search.indexing';
 import * as rimraf from 'rimraf';
+import { Map } from 'search/search.map';
 
 @Injectable()
 export class DocumentService implements OnModuleInit {
@@ -138,6 +139,7 @@ export class DocumentService implements OnModuleInit {
                     visibility: document.visibility,
                     renew: document.renew,
                     link: process.env.WAIT_DOC_PAGE,
+                    date: document.date,
                 });
             }
         } catch (error) {
@@ -190,7 +192,7 @@ export class DocumentService implements OnModuleInit {
                     'WITH RECURSIVE sub_documents(id, ' +
                     'title, "ownerId", info, ' +
                     '"categoryId", link, "parentId", ' +
-                    'old_version, number, visibility, renew, level) AS (' +
+                    'old_version, number, visibility, renew, "date", level) AS (' +
                     `SELECT id, ` +
                     `title, "ownerId", info, ` +
                     `"categoryId", link, "parentId", ` +
@@ -200,7 +202,7 @@ export class DocumentService implements OnModuleInit {
                     'SELECT d.id, ' +
                     'd.title, d."ownerId", d.info, ' +
                     'd."categoryId", d.link, d."parentId", ' +
-                    'd.old_version, d.number, d.visibility, d.renew, ' +
+                    'd.old_version, d.number, d.visibility, d.renew, d."date"' +
                     'level+1 ' +
                     'FROM documents d, sub_documents sd ' +
                     'WHERE d."parentId" = sd.id) ' +
@@ -225,13 +227,14 @@ export class DocumentService implements OnModuleInit {
                         recursiveDocument.number,
                         recursiveDocument.visibility,
                         recursiveDocument.renew,
+                        recursiveDocument.date,
                         false]);
                 }
 
                 const query = 'INSERT INTO documents (id, ' +
                     'title, "ownerId", info, ' +
                     '"categoryId", link, "parentId", ' +
-                    'old_version, number, visibility, renew, active) VALUES ' +
+                    'old_version, number, visibility, renew, date, active) VALUES ' +
                     values.map(_ => '(?)').join(',') +
                     ' ON CONFLICT (id) DO UPDATE SET active = excluded.active, title = excluded.title;';
 
@@ -250,6 +253,7 @@ export class DocumentService implements OnModuleInit {
                 consultant_link: document.consultant_link,
                 visibility: document.visibility,
                 renew: document.renew,
+                date: new Date(document.date),
                 link: filePath,
             });
             transaction.commit();
@@ -342,13 +346,13 @@ export class DocumentService implements OnModuleInit {
         if (document) {
             if (!document.consultant_link) {
                 const documents: DocumentRecursiveDto[] = await this.documentRepository.sequelize.query(
-                    'WITH RECURSIVE sub_documents(id, link, old_version, "parentId", info, level) AS (' +
-                    `SELECT id, link, old_version, "parentId", info, 1 FROM documents WHERE id = :nodeId ${user ? '' : 'AND visibility = :visibility'} ` +
+                    'WITH RECURSIVE sub_documents(id, link, old_version, "parentId", info, "date", level) AS (' +
+                    `SELECT id, link, old_version, "parentId", info, "date", 1 FROM documents WHERE id = :nodeId ${user ? '' : 'AND visibility = :visibility'} ` +
                     'UNION ALL ' +
-                    'SELECT d.id, d.link, d.old_version, d."parentId", d.info, level+1 ' +
+                    'SELECT d.id, d.link, d.old_version, d."parentId", d.info, d."date", level+1 ' +
                     'FROM documents d, sub_documents sd ' +
                     'WHERE d."parentId" = sd.id) ' +
-                    'SELECT id, link, old_version, "parentId", info, level FROM sub_documents ORDER BY level ASC, id ASC;',
+                    'SELECT id, link, old_version, "parentId", info, "date", level FROM sub_documents ORDER BY level ASC, id ASC;',
                     {replacements: { nodeId: id, visibility: true }, type: QueryTypes.SELECT, mapToModel: true });
 
                 const response: GetDocumentDto = {
@@ -532,6 +536,7 @@ export class DocumentService implements OnModuleInit {
                     visibility: document.visibility ? document.visibility : oldDoc.visibility,
                     link: filePath ? filePath : oldDoc.link,
                     renew: document.renew ? document.renew : oldDoc.renew,
+                    date: document.date ? Map.refCreatedAt(new Date(document.date)).toString() : oldDoc.date,
                 }, { transaction });
                 transaction.commit();
                 return updatedDoc;

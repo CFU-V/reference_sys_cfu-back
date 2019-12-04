@@ -53,13 +53,31 @@ export default class DocumentParser {
                     if (child.childrens.length > 0) {
                         const resultedChild: FormattedDocumentDto = await this.format(child);
                         this.merger.load(formattedDocument.formatted.xml(), formattedDocument.relsXml);
-                        const mergeResult = this.merger.start([resultedChild.formatted.xml()], [resultedChild.relsXml]);
+                        const mergeResult = this.merger.start(
+                            [
+                                {
+                                    xml: resultedChild.formatted.xml(),
+                                    id: child.id,
+                                    date: child.date,
+                                },
+                            ],
+                            [resultedChild.relsXml],
+                        );
                         formattedDocument.formatted = cheerio.load(mergeResult.document, cheerioOptions);
                         formattedDocument.relsXml = mergeResult.linksDocument;
                     } else {
                         this.merger.load(formattedDocument.formatted.xml(), formattedDocument.relsXml);
                         const extractedDoc = await this.extractDocument(child.link);
-                        const mergeResult = this.merger.start([extractedDoc.document], [extractedDoc.rels]);
+                        const mergeResult = this.merger.start(
+                            [
+                                {
+                                    xml: extractedDoc.document,
+                                    id: child.id,
+                                    date: child.date,
+                                },
+                                ],
+                            [extractedDoc.rels],
+                        );
                         formattedDocument.formatted = cheerio.load(mergeResult.document, cheerioOptions);
                         formattedDocument.relsXml = mergeResult.linksDocument;
                         if (formattedDocument.old_version) {
@@ -75,6 +93,7 @@ export default class DocumentParser {
                 }
             }
 
+            formattedDocument.formatted = this.addChildList(documentsTree.childrens, formattedDocument.formatted);
             formattedDocument.resultedFileName = await this.saveDocx(zip, formattedDocument.formatted, formattedDocument.relsXml, documentsTree);
             return formattedDocument;
         } catch (error) {
@@ -87,7 +106,6 @@ export default class DocumentParser {
         try {
             let docPath = doc.link;
             if (!doc.consultant_link) {
-                console.log(doc.consultant_link);
                 if (!doc.parentId) {
                     await this.format(documentsTree);
                     docPath = this.getPathForTempDocument(doc.link);
@@ -136,7 +154,7 @@ export default class DocumentParser {
                 '<w:rPr>' +
                 '<w:lang w:val="ru-RU"/>' +
                 '</w:rPr>' +
-                `<w:t>Старая версия ${process.env.APP_URL}/documents/${oldVersion}</w:t>` +
+                `<w:t>Старая версия ${process.env.APP_URL}/docview/${oldVersion}</w:t>` +
                 '</w:r>' +
                 '</w:p>' +
                 str.slice(endIndex);
@@ -144,6 +162,62 @@ export default class DocumentParser {
         } catch (error) {
             throw error;
         }
+    }
+
+    public addChildList(childs: DocumentTreeDto[], $: CheerioStatic): CheerioStatic {
+        let str = $.xml();
+        let endIndex = str.indexOf('<w:body>') + '<w:body>'.length;
+        str = str.slice(0, endIndex) +
+            '<w:p>' +
+            '<w:r>' +
+            `<w:br/>` +
+            '</w:r>' +
+            '</w:p>' +
+            str.slice(endIndex);
+        for (const [i, child] of childs.entries()) {
+            try {
+                const forEndIndex = str.indexOf('<w:body>') + '<w:body>'.length;
+                str = str.slice(0, forEndIndex) +
+                '<w:p>' +
+                '<w:r>' +
+                `<w:t>${childs.length - i}. Изменение от: </w:t>` +
+                '</w:r>' +
+                '<w:r>' +
+                    '<w:fldChar w:fldCharType="begin" />' +
+                '</w:r>' +
+                '<w:r>' +
+                `<w:instrText> HYPERLINK " ${process.env.APP_URL}/docview/${child.id}"</w:instrText>` +
+                '</w:r>' +
+                '<w:r>' +
+                    '<w:fldChar w:fldCharType="separate" />' +
+                '</w:r>' +
+                '<w:r>' +
+                    '<w:rPr>' +
+                    '<w:color w:val="0000FF"/>' +
+                    '</w:rPr>' +
+                    `<w:t xml:space="preserve"> ${child.date.getDate()}-${child.date.getMonth() + 1}-${child.date.getFullYear()}</w:t>` +
+                '</w:r>' +
+                '<w:r>' +
+                    '<w:fldChar w:fldCharType="end" />' +
+                '</w:r>' +
+                '<w:r>' +
+                    '<w:t>.</w:t>' +
+                '</w:r>' +
+                '</w:p>' +
+                str.slice(forEndIndex);
+            } catch (error) {
+                throw error;
+            }
+        }
+        endIndex = str.indexOf('<w:body>') + '<w:body>'.length;
+        str = str.slice(0, endIndex) +
+            '<w:p>' +
+            '<w:r>' +
+            `<w:t>Список изменений:</w:t>` +
+            '</w:r>' +
+            '</w:p>' +
+            str.slice(endIndex);
+        return cheerio.load(str, cheerioOptions);
     }
 
     public async setProps(document: Document, props: BodyDocumentPropertyDto): Promise<void> {

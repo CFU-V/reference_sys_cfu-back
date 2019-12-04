@@ -1,5 +1,5 @@
 import { ApiModelProperty } from '@nestjs/swagger';
-import {Category } from '../entities/category.entity';
+import { Category } from '../entities/category.entity';
 
 export class DocumentDto {
   @ApiModelProperty()
@@ -22,6 +22,8 @@ export class DocumentDto {
   consultant_link: string;
   @ApiModelProperty()
   renew: boolean;
+  @ApiModelProperty({ type: 'string', format: 'date', example: '2018-11-21' })
+  date: Date;
 }
 
 export class UpdateDocumentDto {
@@ -45,6 +47,8 @@ export class UpdateDocumentDto {
   renew: boolean;
   @ApiModelProperty({required: true})
   deleteChilds: boolean;
+  @ApiModelProperty({ type: 'string', format: 'date-time', example: '2018-11-21T06:20:32.232Z' })
+  date: Date;
 }
 
 export class IndexingDocumentDto {
@@ -64,7 +68,7 @@ export class IndexingDocumentDto {
   visibility: boolean;
   category: Category;
   createdAt: Date;
-  registeredAt: Date;
+  date: Date;
 }
 
 export class FullDocumentDto {
@@ -85,7 +89,7 @@ export class FullDocumentDto {
   visibility: boolean;
   category: Category;
   createdAt: Date;
-  registeredAt: Date;
+  date: Date;
 }
 
 export class IndexedDocumentDto {
@@ -106,6 +110,7 @@ export class IndexedDocumentDto {
   createdAt: string;
   updatedAt: string;
   registeredAt: string;
+  date: string;
 }
 
 export class FormattedDocumentDto {

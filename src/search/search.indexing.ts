@@ -46,13 +46,13 @@ export class SearchIndexing implements OnModuleInit {
 
             for (const document of documents) {
                 const documentsTree: DocumentRecursiveDto[] = await this.documentRepository.sequelize.query(
-                    'WITH RECURSIVE sub_documents(id, link, "parentId", level) AS (' +
-                    `SELECT id, link, "parentId", 1 FROM documents WHERE id = :nodeId ` +
+                    'WITH RECURSIVE sub_documents(id, link, "parentId", "date", level) AS (' +
+                    `SELECT id, link, "parentId", "date", 1 FROM documents WHERE id = :nodeId ` +
                     'UNION ALL ' +
-                    'SELECT d.id, d.link, d."parentId", level+1 ' +
+                    'SELECT d.id, d.link, d."parentId", d."date", level+1 ' +
                     'FROM documents d, sub_documents sd ' +
                     'WHERE d."parentId" = sd.id) ' +
-                    'SELECT id, link, "parentId", level FROM sub_documents ORDER BY level ASC, id ASC;',
+                    'SELECT id, link, "parentId", "date", level FROM sub_documents ORDER BY level ASC, id ASC;',
                     {replacements: { nodeId: document.id }, type: QueryTypes.SELECT, mapToModel: true });
 
                 const documentParser = new DocumentParser();

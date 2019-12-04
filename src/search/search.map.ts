@@ -26,6 +26,7 @@ export class Map {
             link: document.link,
             createdAt: this.refCreatedAt(document.createdAt).toString(),
             updatedAt: this.refCreatedAt(document.updatedAt).toString(),
+            date: this.refCreatedAt(document.date).toString(),
         };
     }
 

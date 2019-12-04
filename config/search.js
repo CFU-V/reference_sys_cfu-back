@@ -75,6 +75,10 @@ module.exports = {
     {
       name: "registeredAt",
       type: "date"
+    },
+    {
+      name: "date",
+      type: "date"
     }
   ],
   stopWords: [

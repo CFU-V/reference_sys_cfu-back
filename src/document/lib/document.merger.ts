@@ -3,6 +3,7 @@ import { IDocumentBookmark } from '../interfaces/document.bookmark.interface';
 import * as convert from 'xml-js';
 import { IMergedDocument } from '../interfaces/merged.document.interface';
 import { hasOwnProperty } from 'tslint/lib/utils';
+import { MergeDocumentDto } from '../dto/merge.document.dto';
 
 /**
  * Класс для объединения содержимого документов в один главный документ
@@ -59,15 +60,15 @@ export default class DocumentMerger {
 
     /**
      * объединение всех файлов (дочерних) в главный документ
-     * @param {string[]} xmlFiles Массив XML файллов (дочерних)
+     * @param docFiles
      * @param {string[]} xmlLinks Массив ссылок XML файллов (дочерних)
      * @returns {void}
      */
-    public start(xmlFiles: string[], xmlLinks: string[]): IMergedDocument {
+    public start(docFiles: MergeDocumentDto[], xmlLinks: string[]): IMergedDocument {
         try {
             this.checkValidateParams();
-            for (const [index, xml] of xmlFiles.entries()) {
-                const response: IMergedDocumentData = this.getOperation(this.paragraphs, this.bookmarks, xml, xmlLinks[index]);
+            for (const [index, doc] of docFiles.entries()) {
+                const response: IMergedDocumentData = this.getOperation(this.paragraphs, this.bookmarks, doc, xmlLinks[index]);
                 this.bookmarks = response.bookmarks;
                 this.paragraphs = response.paragraphs;
             }
@@ -257,14 +258,14 @@ export default class DocumentMerger {
      * Основная функция
      * @param {{}[]} mainParagraphs
      * @param {{}[]} mainBookmarks
-     * @param {string} xml
+     * @param doc
      * @param linksXml
      * @returns {{bookmarks: {}[], paragraphs: {}[]}}
      */
     private getOperation(
         mainParagraphs: convert.Element[],
         mainBookmarks: IDocumentBookmark[],
-        xml: string,
+        doc: MergeDocumentDto,
         linksXml: string,
     ): IMergedDocumentData {
         // ? #1 Избежать системных закладок и работать с закладками которые есть в обоих файлах
@@ -274,7 +275,7 @@ export default class DocumentMerger {
         // !Исправить, после замены параграфов,текстов - заменить ID's на мейн
         try {
             this.checkValidateParams();
-            const objectXml = convert.xml2js(xml, {compact: false, trim: false}); // Конвертируем XML в Array of Object;
+            const objectXml = convert.xml2js(doc.xml, {compact: false, trim: false}); // Конвертируем XML в Array of Object;
             const objectLinksXml = convert.xml2js(linksXml, {compact: false, trim: false}); // Конвертируем XML в Array of Object;
 
             // Удаляем глобальные закладки
@@ -286,6 +287,8 @@ export default class DocumentMerger {
                     continue; // Это системные закладки
                 }
 
+                bookmarkXml.name = bookmarkXml.name.toString().replace(/(Добавить|Удалить|Заменить)_/, '')
+
                 const mainBookmarkIndex = mainBookmarks.findIndex(i => i.name === bookmarkXml.name);
 
                 if (mainBookmarkIndex === -1) {
@@ -293,8 +296,29 @@ export default class DocumentMerger {
                 }
                 const mainBookmark = mainBookmarks[mainBookmarkIndex];
                 paragraphsXml = this.computingLinks(bookmarkXml.start, bookmarkXml.end, paragraphsXml, objectLinksXml);
+                let IsText = '';
+
+                for (let i = bookmarkXml.start; i <= bookmarkXml.end; i++) {
+                    for (const el1 of paragraphsXml[i].elements) {
+                        if (el1.name === 'w:r') {
+                            if (el1.elements) {
+                                for (const el2 of el1.elements) {
+                                    if (el2.name === 'w:t') {
+                                        if (el2.elements) {
+                                            for (const el3 of el2.elements) {
+                                                if (el3.type === 'text') {
+                                                    IsText += el3.text;
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
                 if (bookmarkXml.countParagraphs === mainBookmark.countParagraphs) {
-                    console.log(1)
                     for (let j = 0; j < mainBookmark.countParagraphs; j++) {
                         if (!(mainParagraphs[mainBookmark.start + j] && paragraphsXml[bookmarkXml.start + j])) {
                             continue;
@@ -304,6 +328,7 @@ export default class DocumentMerger {
                             paragraphsXml[bookmarkXml.start + j],
                             true);
                     }
+                    mainParagraphs = this.addLinkOfChild(mainParagraphs, mainBookmarks[mainBookmarkIndex].end, doc, IsText.length < 4 ? 'Удалено от' : 'Изменения от');
                 } else {
                     console.log(2)
                     if (bookmarkXml.countParagraphs > mainBookmark.countParagraphs) {
@@ -349,6 +374,8 @@ export default class DocumentMerger {
                                         name: 'w:bookmarkEnd',
                                         type: 'element',
                                     });
+                            //
+
                         } else {
                             console.log('2.1.2')
                             const paragraphsCount = bookmarkXml.countParagraphs - mainBookmark.countParagraphs;
@@ -392,6 +419,7 @@ export default class DocumentMerger {
                                         });
                             }
                         }
+                        // console.log(mainParagraphs[mainBookmarks[mainBookmarkIndex].end].elements);
                     } else {
                         console.log(2.2)
                         mainParagraphs[mainBookmark.start] = this.replaceTextFromOtherParagraph(
@@ -481,6 +509,7 @@ export default class DocumentMerger {
                             }
                         }
                     }
+                    mainParagraphs = this.addLinkOfChild(mainParagraphs, mainBookmarks[mainBookmarkIndex].end, doc, IsText.length < 4 ? 'Удалено от' : 'Изменения от');
                 }
             }
             return {
@@ -491,6 +520,187 @@ export default class DocumentMerger {
             console.log(error);
             throw error;
         }
+    }
+
+    private addLinkOfChild(mainParagraphs, index: number, doc: MergeDocumentDto, text: string) {
+        const arrayOfElements = [];
+        let startIndex = -1;
+        for ( let i = mainParagraphs[index].elements.length - 1; i > 0; i--) {
+            if ( mainParagraphs[index].elements[i].name !== 'w:bookmarkEnd') {
+                startIndex = i + 1;
+                break;
+            }
+        }
+        if (startIndex > mainParagraphs[index].elements.length) {
+            startIndex = mainParagraphs[index].elements.length;
+        }
+        // arrayOfElements
+        //     .push(
+        //         {
+        //             attributes: { 'w:rsidRPr': '00142DBF' },
+        //             name: 'w:r',
+        //             type: 'element',
+        //             elements: [
+        //                 {
+        //                     type: 'element',
+        //                     name: 'w:br',
+        //                     attributes: {},
+        //                 },
+        //             ],
+        //         });
+        arrayOfElements
+            .push(
+                {
+                    attributes: { 'w:rsidRPr': '00142DBF' },
+                    name: 'w:r',
+                    type: 'element',
+                    elements: [
+                        {
+                            type: 'element',
+                            name: 'w:rPr',
+                            elements: [
+                                {
+                                    type: 'element',
+                                    name: 'w:color',
+                                    attributes: { 'w:val': '808080' },
+                                },
+                            ],
+                        },
+                        {
+                            type: 'element',
+                            name: 'w:t',
+                            attributes: { 'xml:space': 'preserve' },
+                            elements: [
+                                {
+                                    type: 'text',
+                                    text: `(${text}: `,
+                                },
+                            ],
+                        },
+                    ],
+                });
+        arrayOfElements
+            .push(
+                {
+                    attributes: { 'w:rsidRPr': '00142DBF' },
+                    name: 'w:r',
+                    type: 'element',
+                    elements: [
+                        {
+                            type: 'element',
+                            name: 'w:fldChar',
+                            attributes: { 'w:fldCharType': 'begin' },
+                        },
+                    ],
+                });
+        arrayOfElements
+            .push(
+                {
+                    attributes: { 'w:rsidRPr': '00142DBF' },
+                    name: 'w:r',
+                    type: 'element',
+                    elements: [
+                        {
+                            type: 'element',
+                            name: 'w:t',
+                            elements: [
+                                {
+                                    type: 'text',
+                                    text: `HYPERLINK "${process.env.APP_URL}/docview/${doc.id}"`,
+                                },
+                            ],
+                        },
+                    ],
+                });
+        arrayOfElements
+            .push(
+                {
+                    attributes: { 'w:rsidRPr': '00142DBF' },
+                    name: 'w:r',
+                    type: 'element',
+                    elements: [
+                        {
+                            type: 'element',
+                            name: 'w:fldChar',
+                            attributes: { 'w:fldCharType': 'separate' },
+                        },
+                    ],
+                });
+        arrayOfElements
+            .push(
+                {
+                    attributes: { 'w:rsidRPr': '00142DBF' },
+                    name: 'w:r',
+                    type: 'element',
+                    elements: [
+                        {
+                            type: 'element',
+                            name: 'w:rPr',
+                            elements: [
+                                {
+                                    type: 'element',
+                                    name: 'w:color',
+                                    attributes: { 'w:val': '0000FF' },
+                                },
+                            ],
+                        },
+                        {
+                            type: 'element',
+                            name: 'w:t',
+                            attributes: { 'xml:space': 'preserve' },
+                            elements: [
+                                {
+                                    type: 'text',
+                                    text: `${doc.date.getDate()}-${doc.date.getMonth() + 1}-${doc.date.getFullYear()}`,
+                                },
+                            ],
+                        },
+                    ],
+                });
+        arrayOfElements
+            .push(
+                {
+                    attributes: { 'w:rsidRPr': '00142DBF' },
+                    name: 'w:r',
+                    type: 'element',
+                    elements: [
+                        {
+                            type: 'element',
+                            name: 'w:fldChar',
+                            attributes: { 'w:fldCharType': 'end' },
+                        },
+                    ],
+                });
+
+        arrayOfElements
+            .push(
+                {
+                    attributes: { 'w:rsidRPr': '00142DBF' },
+                    name: 'w:r',
+                    type: 'element',
+                    elements: [
+                        {
+                            type: 'element',
+                            name: 'w:rPr',
+                            elements: [],
+                        },
+                        {
+                            type: 'element',
+                            name: 'w:t',
+                            elements: [
+                                {
+                                    type: 'text',
+                                    text: ' )',
+                                },
+                            ],
+                        },
+                    ],
+                });
+        for (const el of arrayOfElements) {
+            mainParagraphs[index].elements.splice(startIndex, 0, el);
+            startIndex++;
+        }
+        return mainParagraphs;
     }
 
     /**
@@ -639,7 +849,10 @@ export default class DocumentMerger {
                 return paragraph;
             }
 
-            if (!this.ObjectHasKey(otherParagraph.elements, 'length')) {
+            if (!otherParagraph ||
+                !this.ObjectHasKey(otherParagraph, 'elements') ||
+                !this.ObjectHasKey(otherParagraph.elements, 'length')
+            ) {
                 return paragraph;
             }
 
