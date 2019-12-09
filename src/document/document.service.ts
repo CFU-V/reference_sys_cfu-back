@@ -347,13 +347,16 @@ export class DocumentService implements OnModuleInit {
             if (!document.consultant_link) {
                 if (source !== 'true') {
                     const documents: DocumentRecursiveDto[] = await this.documentRepository.sequelize.query(
-                        'WITH RECURSIVE sub_documents(id, link, old_version, "parentId", info, "date", "categoryId", number, level) AS (' +
-                        `SELECT id, link, old_version, "parentId", info, "date", 1 FROM documents WHERE id = :nodeId ${user ? '' : 'AND visibility = :visibility'} ` +
+                        'WITH RECURSIVE sub_documents(id, link, old_version, "parentId", info, "date", number, "categoryId", level) AS (' +
+                        `SELECT d1.id, d1.link, d1.old_version, d1."parentId", d1.info, d1."date", d1.number, d1."categoryId", 1 FROM documents d1 WHERE d1.id = :nodeId ${user ? '' : 'AND d1.visibility = :visibility'} ` +
                         'UNION ALL ' +
-                        'SELECT d.id, d.link, d.old_version, d."parentId", d.info, d."date", d."categoryId", d.number, level+1 ' +
+                        'SELECT d.id, d.link, d.old_version, d."parentId", d.info, d."date", d.number, d."categoryId", level+1 ' +
                         'FROM documents d, sub_documents sd ' +
                         `WHERE d."parentId" = sd.id ${date ? 'AND d.date < :date' : ''}) ` +
-                        'SELECT id, link, old_version, "parentId", info, "date", "categoryId", number, level FROM sub_documents ORDER BY level ASC, id ASC;',
+                        'SELECT sd2.id, sd2.link, sd2.old_version, sd2."parentId", sd2.info, sd2."date", sd2.number, sd2."categoryId", title, sd2.level ' +
+                        'FROM sub_documents sd2 ' +
+                        'inner join categories on sd2."categoryId"=categories."id" ' +
+                        'ORDER BY level ASC, id ASC;',
                         {replacements: { nodeId: id, visibility: true, date: date ? new Date(date) : '' }, type: QueryTypes.SELECT, mapToModel: true });
 
                     const response: GetDocumentDto = {
