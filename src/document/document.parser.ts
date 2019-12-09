@@ -60,6 +60,8 @@ export default class DocumentParser {
                                     xml: resultedChild.formatted.xml(),
                                     id: child.id,
                                     date: child.date,
+                                    category: child.category,
+                                    number: child.number,
                                 },
                             ],
                             [resultedChild.relsXml],
@@ -75,6 +77,8 @@ export default class DocumentParser {
                                     xml: extractedDoc.document,
                                     id: child.id,
                                     date: child.date,
+                                    category: child.category,
+                                    number: child.number,
                                 },
                                 ],
                             [extractedDoc.rels],
@@ -184,7 +188,7 @@ export default class DocumentParser {
                 str = str.slice(0, forEndIndex) +
                 '<w:p>' +
                 '<w:r>' +
-                `<w:t>${childs.length - i}. Изменения от: </w:t>` +
+                `<w:t>${childs.length - i}. Редакция от: </w:t>` +
                 '</w:r>' +
                 '<w:r>' +
                     '<w:fldChar w:fldCharType="begin" />' +
@@ -230,7 +234,7 @@ export default class DocumentParser {
         str = str.slice(0, endIndex) +
             '<w:p>' +
             '<w:r>' +
-            `<w:t>Исходный документ можно просмотреть </w:t>` +
+            `<w:t></w:t>` +
             '</w:r>' +
             '<w:r>' +
             '<w:fldChar w:fldCharType="begin" />' +
@@ -245,7 +249,7 @@ export default class DocumentParser {
             '<w:rPr>' +
             '<w:color w:val="0000FF"/>' +
             '</w:rPr>' +
-            `<w:t xml:space="preserve"> тут</w:t>` +
+            `<w:t>Исходная редакция</w:t>` +
             '</w:r>' +
             '<w:r>' +
             '<w:fldChar w:fldCharType="end" />' +

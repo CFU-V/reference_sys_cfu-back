@@ -6,6 +6,8 @@ export class DocumentTreeDto {
     old_version: number;
     level: number;
     date: Date;
+    category: string;
+    number: number;
     childrens: Array<DocumentTreeDto>;
 }
 
@@ -17,4 +19,6 @@ export class DocumentRecursiveDto {
     info: string;
     level: number;
     date: Date;
+    category: string;
+    number: number;
 }

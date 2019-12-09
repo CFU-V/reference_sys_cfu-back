@@ -639,7 +639,7 @@ export default class DocumentMerger {
                             elements: [
                                 {
                                     type: 'text',
-                                    text: `${doc.date.getDate()}-${doc.date.getMonth() + 1}-${doc.date.getFullYear()}`,
+                                    text: `${doc.category} ${doc.number} ${doc.date.getDate()}-${doc.date.getMonth() + 1}-${doc.date.getFullYear()}`,
                                 },
                             ],
                         },
