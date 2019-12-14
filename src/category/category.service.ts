@@ -27,7 +27,7 @@ export class CategoryService {
             const oldCategory = await this.categoryRepository.findOne({ where: {id: category.id} });
             if (oldCategory) {
                 return await oldCategory.update({
-                    title: document.title ? document.title : oldCategory.title,
+                    title: category.title ? category.title : oldCategory.title,
                 });
             } else {
                 return new HttpException(`Category with id ${category.id} doesn\`t exist.`, HttpStatus.BAD_REQUEST);
@@ -42,7 +42,7 @@ export class CategoryService {
         const category = await this.categoryRepository.findOne({ where: { id } });
         const documents = await this.documentRepository.findAll({ where: { categoryId: id }, attributes: ['title']});
         if (category) {
-            if (documents) {
+            if (documents && documents.length > 0) {
                 throw new HttpException(`Before delete this category delete the next documents: ${documents}.`, HttpStatus.CONFLICT);
             } else {
                 const t = await this.categoryRepository.sequelize.transaction();

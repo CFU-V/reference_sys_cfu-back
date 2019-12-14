@@ -9,6 +9,7 @@ import { BookmarkModule } from './bookmarks/bookmark.module';
 import { SearchModule } from './search/search.module';
 import { LogsModule } from './logs/logs.module';
 import { MessageModule } from './messages/message.module';
+import { CategoryModule } from './category/category.module';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { MessageModule } from './messages/message.module';
     SearchModule,
     LogsModule,
     MessageModule,
+    CategoryModule,
   ],
   controllers: [AppController],
   providers: [AppService],
