@@ -22,7 +22,7 @@ export class CategoryService {
         }
     }
 
-    async updateDocument(id: number, category: UpdateCategoryDto) {
+    async updateCategory(id: number, category: UpdateCategoryDto) {
         try {
             const oldCategory = await this.categoryRepository.findOne({ where: {id: category.id} });
             if (oldCategory) {
