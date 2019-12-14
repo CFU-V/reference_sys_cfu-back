@@ -4,7 +4,7 @@ import { DOCUMENT_INDEX } from '../common/constants';
 import { Inject, Injectable, OnModuleInit } from '@nestjs/common';
 import { Document } from '../document/entities/document.entity';
 import { CronJob } from 'cron';
-import { Category } from '../document/entities/category.entity';
+import { Category } from '../category/entities/category.entity';
 import { DocumentRecursiveDto } from '../document/dto/document.tree.dto';
 import { QueryTypes } from 'sequelize';
 import { buildDocumentTree } from '../core/TreeBuilder';

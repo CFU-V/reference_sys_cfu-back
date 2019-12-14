@@ -27,7 +27,7 @@ import { DocumentSrhareDto } from './dto/document.srhare.dto';
 import { User } from '../user/entities/user.entity';
 import { DocumentNewsDto } from './dto/document.news.dto';
 import * as moment from 'moment';
-import { Category } from './entities/category.entity';
+import { Category } from '../category/entities/category.entity';
 import * as request from 'request';
 import * as url from 'url';
 import * as iconv from 'iconv-lite';

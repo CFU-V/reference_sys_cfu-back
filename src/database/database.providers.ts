@@ -5,7 +5,7 @@ import { User } from '../user/entities/user.entity';
 import { Role } from '../user/entities/role.entity';
 import { Document } from '../document/entities/document.entity';
 import { Bookmark } from '../bookmarks/entities/bookmark.entity';
-import { Category } from '../document/entities/category.entity';
+import { Category } from '../category/entities/category.entity';
 import { Message } from '../messages/entities/message.entity';
 import { UserMessage } from '../messages/entities/message.users.entity';
 /**

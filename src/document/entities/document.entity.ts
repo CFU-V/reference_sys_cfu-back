@@ -13,7 +13,7 @@ import {
     BelongsTo, BelongsToMany, BeforeUpdate, BeforeCreate, BeforeDestroy, AfterCreate, AfterUpdate, HasMany, HasOne, AfterDestroy,
 } from 'sequelize-typescript';
 import { User } from '../../user/entities/user.entity';
-import { Category } from './category.entity';
+import { Category } from '../../category/entities/category.entity';
 import { SearchIndexing } from '../../search/search.indexing';
 import { BookmarkService } from '../../bookmarks/bookmark.service';
 import { DOCUMENT_INDEX } from '../../common/constants';
