@@ -1,9 +1,7 @@
 import {
     Controller,
-    Get,
     Res,
     HttpStatus,
-    Param,
     Post,
     Body,
     Query,
@@ -11,29 +9,13 @@ import {
     Delete,
     Request,
     UseGuards,
-    UploadedFile,
-    UseInterceptors, Header,
 } from '@nestjs/common';
 import { CategoryService } from './category.service';
-import { ApiUseTags, ApiBearerAuth, ApiConsumes, ApiImplicitFile, ApiResponse, ApiOperation, ApiImplicitQuery} from '@nestjs/swagger';
+import { ApiUseTags, ApiBearerAuth, ApiResponse, ApiOperation } from '@nestjs/swagger';
 import { AuthGuard } from '@nestjs/passport';
-import { DocumentDto, UpdateDocumentDto } from './dto/document.dto';
-import { FileInterceptor } from '@nestjs/platform-express';
-import { diskStorage } from 'multer';
-import { extname } from 'path';
-import Utils from '../core/Utils';
 import { ValidateObjectId } from '../shared/pipes/validate-object-id.pipes';
-import * as path from 'path';
-import { verify } from 'jsonwebtoken';
 import { UserService } from '../user/user.service';
-import { DocumentPropertyDto } from './dto/document.property.dto';
-import { BodyDocumentPropertyDto } from './dto/document.body.property.dto';
 import logger from '../core/logger';
-import { GetDocumentDto } from './dto/deocument.get.dto';
-import { DocumentSrhareDto } from './dto/document.srhare.dto';
-import { DOCX_CONTENT_TYPE } from '../common/constants';
-import { DocumentNewsDto } from './dto/document.news.dto';
-import { stream } from 'winston';
 import { CategoryDto } from './dto/category.dto';
 import { UpdateCategoryDto } from './dto/update.category.dto';
 
