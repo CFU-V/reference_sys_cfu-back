@@ -1,5 +1,5 @@
 import { ApiModelProperty } from '@nestjs/swagger';
-import { Category } from '../entities/category.entity';
+import { Category } from '../../category/entities/category.entity';
 
 export class DocumentDto {
   @ApiModelProperty()
