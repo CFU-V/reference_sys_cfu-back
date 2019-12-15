@@ -116,8 +116,20 @@ export class DocumentService implements OnModuleInit {
         }
     }
 
-    async fetchCategories(): Promise<Category> {
-        return await this.categoryRepository.findAll({ attributes: ['id', 'title'] });
+    async fetchCategories(total: string = 'false', page?: number, pageSize?: number) {
+        if (total === 'true') {
+            return this.categoryRepository.findAll({ attributes: ['id', 'title'] });
+        } else {
+            page = page > 0 ? page : PAGE;
+            pageSize = pageSize > 0 ? pageSize : PAGE_SIZE;
+            const offset: number = pageSize * page;
+            const result =  await this.categoryRepository.findAndCountAll({
+                limit: pageSize,
+                offset,
+                attributes: ['id', 'title'],
+            });
+            return new EntitiesWithPaging(result.rows, result.count, page, pageSize);
+        }
     }
 
     async addDocumentFromConsultant(ownerId: number, document: DocumentDto): Promise<Document> {

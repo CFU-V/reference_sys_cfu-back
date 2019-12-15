@@ -195,12 +195,33 @@ export class DocumentController {
     @Get('/categories')
     @ApiResponse({ status: 200, description: 'Array of categories'})
     @ApiOperation({title: 'Get categories.'})
+    @ApiImplicitQuery({
+        name: 'page',
+        description: 'The number of pages',
+        required: false,
+        type: Number,
+    })
+    @ApiImplicitQuery({
+        name: 'pageSize',
+        description: 'The number of users in page',
+        required: false,
+        type: Number,
+    })
+    @ApiImplicitQuery({
+        name: 'total',
+        description: 'Full list',
+        required: false,
+        type: Boolean,
+    })
     async getCategories(
         @Res() res,
         @Request() req,
+        @Query('total') total: string,
+        @Query('page') page: number,
+        @Query('pageSize') pageSize: number,
     ) {
         try {
-            return res.status(HttpStatus.OK).json(await this.documentService.fetchCategories());
+            return res.status(HttpStatus.OK).json(await this.documentService.fetchCategories(total, page, pageSize));
         } catch (error) {
             console.log(error);
             return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ error });
