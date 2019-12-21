@@ -36,6 +36,7 @@ import { SearchService } from '../search/search.service';
 import { SearchIndexing } from '../search/search.indexing';
 import * as rimraf from 'rimraf';
 import { Map } from 'search/search.map';
+import { CompareDataResponseDto } from './dto/compare.data.response.dto';
 
 @Injectable()
 export class DocumentService implements OnModuleInit {
@@ -153,6 +154,40 @@ export class DocumentService implements OnModuleInit {
                     link: process.env.WAIT_DOC_PAGE,
                     date: new Date(document.date),
                 });
+            }
+        } catch (error) {
+            console.log(error);
+            throw error;
+        }
+    }
+
+    async compareDocuments(sourceId: number, compareId: number, page: number): Promise<CompareDataResponseDto> {
+        try {
+            const documents = await this.documentRepository.findAll({ where: {
+                    [Op.or] : [
+                        { id: sourceId },
+                        { id: compareId },
+                    ],
+                },
+            });
+            const source = documents.find((document) => (document.id === sourceId));
+            const compare = documents.find((document) => (document.id === compareId));
+            if (source && compare) {
+                const documentParser = new DocumentParser();
+                const sourceTextPage = await documentParser.getTextByPage(source, page, true);
+                const compareTextPage = await documentParser.getTextByPage(compare, page, false);
+                return {
+                    sourceText: sourceTextPage.text,
+                    compareText: compareTextPage.text,
+                    totalPages: sourceTextPage.total,
+                    page,
+                };
+            } else {
+                if (!source) {
+                    throw new HttpException(`Document ${sourceId} dose not exist`, HttpStatus.BAD_REQUEST);
+                } else {
+                    throw new HttpException(`Document ${compareId} dose not exist`, HttpStatus.BAD_REQUEST);
+                }
             }
         } catch (error) {
             console.log(error);

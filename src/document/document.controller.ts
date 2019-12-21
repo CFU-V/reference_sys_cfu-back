@@ -34,6 +34,7 @@ import { DocumentSrhareDto } from './dto/document.srhare.dto';
 import { DOCX_CONTENT_TYPE } from '../common/constants';
 import { DocumentNewsDto } from './dto/document.news.dto';
 import { stream } from 'winston';
+import { CompareDataDto } from './dto/compare.data.dto';
 
 @ApiUseTags('document')
 @ApiBearerAuth()
@@ -243,6 +244,23 @@ export class DocumentController {
         } catch (error) {
             console.log(error);
             res.setHeader('Content-type', 'application/json');
+            return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ error });
+        }
+    }
+
+    @Post('/compare')
+    @ApiResponse({ status: 200, description: '' })
+    @ApiOperation({title: 'Compare documents.'})
+    async compareDocuments(
+        @Res() res,
+        @Request() req,
+        @Body() compareData: CompareDataDto,
+    ) {
+        try {
+            const resp = await this.documentService.compareDocuments(compareData.sourceId, compareData.compareId, compareData.page);
+            return res.status(HttpStatus.OK).json(resp);
+        } catch (error) {
+            console.log(error);
             return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ error });
         }
     }

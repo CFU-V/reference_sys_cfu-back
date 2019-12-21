@@ -1,6 +1,6 @@
 import * as cheerio from 'cheerio';
 import * as Zip from 'adm-zip';
-import * as convert from 'xml2js';
+import * as convert from 'xml-js';
 import DocumentMerger from './lib/document.merger';
 // import DocumentMerger from './lib/mergeLib';
 import {
@@ -16,19 +16,20 @@ import { FormattedDocumentDto } from './dto/document.dto';
 import * as textract from 'textract';
 import Utils from '../core/Utils';
 import { Document } from './entities/document.entity';
-import { HttpException } from '@nestjs/common';
+import { HttpException, HttpStatus } from '@nestjs/common';
 import { BodyDocumentPropertyDto } from './dto/document.body.property.dto';
 import { IExtractedDocument } from './interfaces/extractedDocument';
 import * as dotenv from 'dotenv';
+import { CompareDataDto } from './dto/compare.data.dto';
+import { CompareDataResponseDto } from './dto/compare.data.response.dto';
+import { TextByPageDto } from './dto/text.by.page.dto';
 const cheerioOptions = {decodeEntities: false, xmlMode: true, normalizeTags: true, normalizeWhitespace: true};
 dotenv.config();
 
 export default class DocumentParser {
-    private xmlParser: convert.Parser;
     private merger: DocumentMerger;
 
     constructor() {
-        this.xmlParser = new convert.Parser();
         this.merger = new DocumentMerger();
     }
 
@@ -130,6 +131,40 @@ export default class DocumentParser {
                     }
                 });
             });
+        } catch (error) {
+            console.log(error);
+            throw error;
+        }
+    }
+
+    public async getTextByPage(doc: Document, page: number, source: boolean): Promise<TextByPageDto> {
+        try {
+            const zip = new Zip(doc.link);
+            const xml = zip.readAsText(DOCX_XML_PATH);
+            const pagesTxt = xml.split('<w:lastRenderedPageBreak/>');
+            if (pagesTxt[page]) {
+                return new Promise(async (resolve, reject) => {
+                    textract.fromBufferWithMime('text/xml', Buffer.from(pagesTxt[page]),
+                      (error, text) => {
+                          if (error) {
+                              reject(error);
+                          }
+                          resolve({
+                              text,
+                              total: pagesTxt.length - 1,
+                          });
+                      });
+                });
+            } else {
+                if (source) {
+                    throw new HttpException('Page dose not exist', HttpStatus.BAD_REQUEST);
+                } else {
+                    return {
+                        text: '',
+                        total: 0,
+                    };
+                }
+            }
         } catch (error) {
             console.log(error);
             throw error;
