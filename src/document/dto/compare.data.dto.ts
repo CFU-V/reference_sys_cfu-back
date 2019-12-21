@@ -6,5 +6,5 @@ export class CompareDataDto {
     @ApiModelProperty()
     compareId: number;
     @ApiModelProperty()
-    page: number;
+    page?: number;
 }

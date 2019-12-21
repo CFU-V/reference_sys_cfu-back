@@ -161,7 +161,7 @@ export class DocumentService implements OnModuleInit {
         }
     }
 
-    async compareDocuments(sourceId: number, compareId: number, page: number): Promise<CompareDataResponseDto> {
+    async compareDocuments(sourceId: number, compareId: number, page: number = 0): Promise<CompareDataResponseDto> {
         try {
             const documents = await this.documentRepository.findAll({ where: {
                     [Op.or] : [
