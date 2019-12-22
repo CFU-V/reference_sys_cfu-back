@@ -170,8 +170,8 @@ export class DocumentService implements OnModuleInit {
                     ],
                 },
             });
-            const source = documents.find((document) => (document.id === sourceId));
-            const compare = documents.find((document) => (document.id === compareId));
+            const source = documents.find((document) => (document.id == sourceId));
+            const compare = documents.find((document) => (document.id == compareId));
             if (source && compare) {
                 const documentParser = new DocumentParser();
                 const sourceTextPage = await documentParser.getTextByPage(source, page, true);
