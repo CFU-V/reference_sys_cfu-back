@@ -35,6 +35,7 @@ export default class DocumentParser {
 
     public async format(documentsTree: DocumentTreeDto): Promise<FormattedDocumentDto> {
         try {
+            console.log(documentsTree)
             const zip = new Zip(documentsTree.link);
             const formattedDocument: FormattedDocumentDto = {
                 id: documentsTree.id,
@@ -61,7 +62,7 @@ export default class DocumentParser {
                                     xml: resultedChild.formatted.xml(),
                                     id: child.id,
                                     date: child.date,
-                                    category: child.category,
+                                    category: child.categoryTitle,
                                     number: child.number,
                                 },
                             ],
@@ -78,7 +79,7 @@ export default class DocumentParser {
                                     xml: extractedDoc.document,
                                     id: child.id,
                                     date: child.date,
-                                    category: child.category,
+                                    category: child.categoryTitle,
                                     number: child.number,
                                 },
                                 ],

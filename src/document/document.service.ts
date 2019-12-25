@@ -400,7 +400,7 @@ export class DocumentService implements OnModuleInit {
                         'SELECT d.id, d.link, d.old_version, d."parentId", d.info, d."date", d.number, d."categoryId", level+1 ' +
                         'FROM documents d, sub_documents sd ' +
                         `WHERE d."parentId" = sd.id ${date ? 'AND d.date < :date' : ''}) ` +
-                        'SELECT sd2.id, sd2.link, sd2.old_version, sd2."parentId", sd2.info, sd2."date", sd2.number, sd2."categoryId", title, sd2.level ' +
+                        'SELECT sd2.id, sd2.link, sd2.old_version, sd2."parentId", sd2.info, sd2."date", sd2.number, sd2."categoryId", title as "categoryTitle", sd2.level ' +
                         'FROM sub_documents sd2 ' +
                         'inner join categories on sd2."categoryId"=categories."id" ' +
                         'ORDER BY level ASC, id ASC;',

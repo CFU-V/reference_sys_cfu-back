@@ -7,8 +7,9 @@ import {DocumentRecursiveDto, DocumentTreeDto} from "../document/dto/document.tr
  * @returns {Promise<any>}
  */
 
-export async function buildDocumentTree(documents: any, id?: number) : Promise<DocumentTreeDto> {
+export async function buildDocumentTree(documents: any, id?: number): Promise<DocumentTreeDto> {
     try {
+        console.log(documents)
         let map = {}, node, categoryTree: Array<DocumentTreeDto> = [];
 
         for (let i = 0; i < documents.length; i++) {
